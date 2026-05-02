@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronRight, PackageSearch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -232,9 +232,10 @@ export default function ProdukPage() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Produk" : "Tambah Produk"}</DialogTitle>
+            <DialogDescription className="sr-only">{editing ? "Edit data produk dan variannya" : "Isi data produk baru beserta variannya"}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -266,10 +267,9 @@ export default function ProdukPage() {
               </div>
               <div className="space-y-2">
                 <Label>Sub Kategori (Sub Jenis)</Label>
-                <Select value={form.subCategoryId} onValueChange={(v) => setForm({ ...form, subCategoryId: v })}>
-                  <SelectTrigger><SelectValue placeholder="Pilih sub kategori" /></SelectTrigger>
+                <Select value={form.subCategoryId || undefined} onValueChange={(v) => setForm({ ...form, subCategoryId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Pilih sub kategori (opsional)" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Tidak ada</SelectItem>
                     {filteredSubs.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -296,20 +296,18 @@ export default function ProdukPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-xs">Warna</Label>
-                      <Select value={v.colorId} onValueChange={(val) => { const nv = [...variants]; nv[i].colorId = val; setVariants(nv); }}>
+                      <Select value={v.colorId || undefined} onValueChange={(val) => { const nv = [...variants]; nv[i].colorId = val; setVariants(nv); }}>
                         <SelectTrigger className="h-9"><SelectValue placeholder="Pilih warna" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Tidak ada</SelectItem>
                           {colors.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Ukuran</Label>
-                      <Select value={v.sizeId} onValueChange={(val) => { const nv = [...variants]; nv[i].sizeId = val; setVariants(nv); }}>
+                      <Select value={v.sizeId || undefined} onValueChange={(val) => { const nv = [...variants]; nv[i].sizeId = val; setVariants(nv); }}>
                         <SelectTrigger className="h-9"><SelectValue placeholder="Pilih ukuran" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Tidak ada</SelectItem>
                           {sizes.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                         </SelectContent>
                       </Select>

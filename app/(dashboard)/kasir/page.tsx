@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck } from "lucide-react";
@@ -328,8 +328,11 @@ export default function KasirPage() {
 
       {/* Dialog Checkout */}
       <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Konfirmasi Pembayaran</DialogTitle></DialogHeader>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Pembayaran</DialogTitle>
+            <DialogDescription className="sr-only">Konfirmasi total belanja dan input jumlah uang diterima</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <Table>
               <TableBody>
@@ -380,8 +383,11 @@ export default function KasirPage() {
 
       {/* Dialog Struk */}
       <Dialog open={receiptDialogOpen} onOpenChange={setReceiptDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Transaksi Berhasil!</DialogTitle></DialogHeader>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>Transaksi Berhasil!</DialogTitle>
+            <DialogDescription className="sr-only">Transaksi selesai. Unduh atau cetak struk pembayaran.</DialogDescription>
+          </DialogHeader>
           {lastTransaction && (
             <div className="space-y-4">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">

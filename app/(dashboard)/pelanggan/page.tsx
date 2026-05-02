@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, Loader2, Users, Tag, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -200,8 +200,11 @@ export default function PelangganPage() {
 
       {/* Dialog tambah/edit pelanggan */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editing ? "Edit Pelanggan" : "Tambah Pelanggan"}</DialogTitle></DialogHeader>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Pelanggan" : "Tambah Pelanggan"}</DialogTitle>
+            <DialogDescription className="sr-only">{editing ? "Edit data pelanggan" : "Isi data pelanggan baru"}</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             {[
               { key: "name", label: "Nama", placeholder: "Nama pelanggan", required: true },
@@ -230,9 +233,10 @@ export default function PelangganPage() {
 
       {/* Dialog harga khusus pelanggan */}
       <Dialog open={priceDialogOpen} onOpenChange={setPriceDialogOpen}>
-        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Harga Khusus — {selectedCustomer?.name}</DialogTitle>
+            <DialogDescription className="sr-only">Kelola harga khusus varian produk untuk pelanggan ini</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
