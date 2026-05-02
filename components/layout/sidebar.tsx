@@ -38,6 +38,7 @@ const navItems: NavItem[] = [
   },
   { label: "Pelanggan", href: "/pelanggan", icon: Users, adminOnly: true },
   { label: "Laporan", href: "/laporan", icon: BarChart3, adminOnly: true },
+  { label: "Pengguna", href: "/pengguna", icon: Settings, adminOnly: true },
 ];
 
 interface SidebarProps {
