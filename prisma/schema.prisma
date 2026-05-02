@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  KASIR
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  password     String
+  role         Role          @default(KASIR)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+}
+
+model Customer {
+  id             String          @id @default(cuid())
+  name           String
+  phone          String?
+  email          String?
+  address        String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  transactions   Transaction[]
+  customerPrices CustomerPrice[]
+}
+
+model Unit {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Category {
+  id            String        @id @default(cuid())
+  name          String        @unique
+  subCategories SubCategory[]
+  products      Product[]
+}
+
+model SubCategory {
+  id         String    @id @default(cuid())
+  name       String
+  categoryId String
+  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  products   Product[]
+
+  @@unique([name, categoryId])
+}
+
+model Color {
+  id       String           @id @default(cuid())
+  name     String           @unique
+  hex      String?
+  variants ProductVariant[]
+}
+
+model Size {
+  id       String           @id @default(cuid())
+  name     String           @unique
+  variants ProductVariant[]
+}
+
+model Product {
+  id                String           @id @default(cuid())
+  name              String
+  description       String?
+  unitId            String
+  categoryId        String
+  subCategoryId     String?
+  lowStockThreshold Int              @default(5)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  unit              Unit             @relation(fields: [unitId], references: [id])
+  category          Category         @relation(fields: [categoryId], references: [id])
+  subCategory       SubCategory?     @relation(fields: [subCategoryId], references: [id])
+  variants          ProductVariant[]
+}
+
+model ProductVariant {
+  id               String            @id @default(cuid())
+  productId        String
+  colorId          String?
+  sizeId           String?
+  basePrice        Decimal           @db.Decimal(15, 2)
+  stock            Int               @default(0)
+  sku              String?           @unique
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  product          Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color            Color?            @relation(fields: [colorId], references: [id])
+  size             Size?             @relation(fields: [sizeId], references: [id])
+  customerPrices   CustomerPrice[]
+  transactionItems TransactionItem[]
+
+  @@unique([productId, colorId, sizeId])
+}
+
+model CustomerPrice {
+  id               String         @id @default(cuid())
+  customerId       String
+  productVariantId String
+  price            Decimal        @db.Decimal(15, 2)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  customer         Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, productVariantId])
+}
+
+model Transaction {
+  id                String            @id @default(cuid())
+  transactionNumber String            @unique
+  kasirId           String
+  customerId        String
+  subtotal          Decimal           @db.Decimal(15, 2)
+  discountAmount    Decimal           @default(0) @db.Decimal(15, 2)
+  discountReason    String?
+  totalAmount       Decimal           @db.Decimal(15, 2)
+  paymentAmount     Decimal           @db.Decimal(15, 2)
+  changeAmount      Decimal           @db.Decimal(15, 2)
+  createdAt         DateTime          @default(now())
+  kasir             User              @relation(fields: [kasirId], references: [id])
+  customer          Customer          @relation(fields: [customerId], references: [id])
+  items             TransactionItem[]
+}
+
+model TransactionItem {
+  id               String         @id @default(cuid())
+  transactionId    String
+  productVariantId String
+  productName      String
+  variantInfo      String
+  quantity         Int
+  priceAtSale      Decimal        @db.Decimal(15, 2)
+  subtotal         Decimal        @db.Decimal(15, 2)
+  transaction      Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+}

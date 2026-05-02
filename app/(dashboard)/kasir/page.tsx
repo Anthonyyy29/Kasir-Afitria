@@ -1,0 +1,408 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { formatRupiah } from "@/lib/utils";
+
+interface Variant { id: string; colorId: string | null; sizeId: string | null; basePrice: string; stock: number; color: { name: string; hex: string | null } | null; size: { name: string } | null; }
+interface Product { id: string; name: string; unit: { name: string }; variants: Variant[]; }
+interface Customer { id: string; name: string; phone: string | null; customerPrices: { productVariantId: string; price: string }[]; }
+interface CartItem { variantId: string; productId: string; productName: string; variantInfo: string; price: number; basePrice: number; quantity: number; stock: number; unit: string; }
+
+export default function KasirPage() {
+  const { toast } = useToast();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<{ id: string; name: string; phone: string | null }[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [loadingCustomer, setLoadingCustomer] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [search, setSearch] = useState("");
+  const [discountAmount, setDiscountAmount] = useState("");
+  const [discountReason, setDiscountReason] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+  const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
+  const [lastTransaction, setLastTransaction] = useState<Record<string, unknown> | null>(null);
+  const [processing, setProcessing] = useState(false);
+
+  const loadData = useCallback(async () => {
+    const [pRes, cRes] = await Promise.all([fetch("/api/produk"), fetch("/api/pelanggan")]);
+    if (pRes.ok) setProducts(await pRes.json());
+    if (cRes.ok) setCustomers(await cRes.json());
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  async function handleSelectCustomer(customerId: string) {
+    if (!customerId) { setSelectedCustomer(null); recalcCartPrices(null); return; }
+    setLoadingCustomer(true);
+    const res = await fetch(`/api/pelanggan/${customerId}`);
+    if (res.ok) {
+      const customer = await res.json();
+      setSelectedCustomer(customer);
+      recalcCartPrices(customer);
+    }
+    setLoadingCustomer(false);
+  }
+
+  function recalcCartPrices(customer: Customer | null) {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (!customer) return { ...item, price: item.basePrice };
+        const cp = customer.customerPrices.find((p) => p.productVariantId === item.variantId);
+        return { ...item, price: cp ? parseFloat(cp.price) : item.basePrice };
+      })
+    );
+  }
+
+  function getPrice(variantId: string, basePrice: string): number {
+    if (!selectedCustomer) return parseFloat(basePrice);
+    const cp = selectedCustomer.customerPrices.find((p) => p.productVariantId === variantId);
+    return cp ? parseFloat(cp.price) : parseFloat(basePrice);
+  }
+
+  function addToCart(product: Product, variant: Variant) {
+    const existing = cart.find((i) => i.variantId === variant.id);
+    if (existing) {
+      if (existing.quantity >= variant.stock) {
+        toast({ title: "Stok tidak cukup", variant: "destructive" });
+        return;
+      }
+      setCart(cart.map((i) => i.variantId === variant.id ? { ...i, quantity: i.quantity + 1 } : i));
+    } else {
+      if (variant.stock === 0) {
+        toast({ title: "Stok habis", variant: "destructive" });
+        return;
+      }
+      const vInfo = [variant.color?.name, variant.size?.name].filter(Boolean).join(" / ");
+      const price = getPrice(variant.id, variant.basePrice);
+      setCart([...cart, {
+        variantId: variant.id,
+        productId: product.id,
+        productName: product.name,
+        variantInfo: vInfo,
+        price,
+        basePrice: parseFloat(variant.basePrice),
+        quantity: 1,
+        stock: variant.stock,
+        unit: product.unit.name,
+      }]);
+    }
+  }
+
+  function updateQty(variantId: string, delta: number) {
+    setCart((prev) =>
+      prev.map((i) => i.variantId === variantId ? { ...i, quantity: Math.max(1, Math.min(i.stock, i.quantity + delta)) } : i)
+    );
+  }
+
+  function removeFromCart(variantId: string) { setCart(cart.filter((i) => i.variantId !== variantId)); }
+
+  const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  const discount = parseFloat(discountAmount || "0");
+  const total = Math.max(0, subtotal - discount);
+  const payment = parseFloat(paymentAmount || "0");
+  const change = payment - total;
+
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  async function handleCheckout() {
+    if (!selectedCustomer) { toast({ title: "Pilih pelanggan terlebih dahulu", variant: "destructive" }); return; }
+    if (cart.length === 0) { toast({ title: "Keranjang kosong", variant: "destructive" }); return; }
+    if (payment < total) { toast({ title: "Jumlah bayar kurang", variant: "destructive" }); return; }
+
+    setProcessing(true);
+    const res = await fetch("/api/transaksi", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customerId: selectedCustomer.id,
+        items: cart.map((i) => ({
+          productVariantId: i.variantId,
+          productName: i.productName,
+          variantInfo: i.variantInfo,
+          quantity: i.quantity,
+          priceAtSale: i.price,
+        })),
+        discountAmount: discount,
+        discountReason: discountReason || null,
+        paymentAmount: payment,
+      }),
+    });
+
+    if (res.ok) {
+      const trx = await res.json();
+      setLastTransaction(trx);
+      setCart([]);
+      setDiscountAmount("");
+      setDiscountReason("");
+      setPaymentAmount("");
+      setCheckoutDialogOpen(false);
+      setReceiptDialogOpen(true);
+      await loadData();
+      toast({ title: "Transaksi berhasil!" });
+    } else {
+      toast({ title: "Transaksi gagal", variant: "destructive" });
+    }
+    setProcessing(false);
+  }
+
+  async function printReceipt() {
+    if (!lastTransaction) return;
+    const { generateReceiptPDF } = await import("@/lib/pdf");
+    const doc = generateReceiptPDF(lastTransaction as unknown as Parameters<typeof generateReceiptPDF>[0]);
+    doc.autoPrint();
+    window.open(doc.output("bloburl"), "_blank");
+  }
+
+  async function downloadReceipt() {
+    if (!lastTransaction) return;
+    const { generateReceiptPDF } = await import("@/lib/pdf");
+    const doc = generateReceiptPDF(lastTransaction as unknown as Parameters<typeof generateReceiptPDF>[0]);
+    doc.save(`struk-${(lastTransaction as { transactionNumber: string }).transactionNumber}.pdf`);
+  }
+
+  return (
+    <div className="h-[calc(100vh-6rem)] flex gap-4">
+      {/* Kiri: Produk */}
+      <div className="flex-1 flex flex-col gap-3 min-w-0">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input className="pl-9" placeholder="Cari produk..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <div className="w-56">
+            <Select onValueChange={handleSelectCustomer}>
+              <SelectTrigger className={selectedCustomer ? "border-blue-400 bg-blue-50" : ""}>
+                <SelectValue placeholder="Pilih pelanggan..." />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name} {c.phone ? `(${c.phone})` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {loadingCustomer && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
+          {selectedCustomer && <Badge variant="success" className="gap-1 whitespace-nowrap"><UserCheck className="h-3 w-3" />{selectedCustomer.name}</Badge>}
+        </div>
+
+        {!selectedCustomer && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2.5 text-sm text-yellow-700">
+            Pilih pelanggan terlebih dahulu agar harga khusus diterapkan.
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto space-y-2">
+          {filteredProducts.map((product) => (
+            <Card key={product.id} className="shadow-none">
+              <CardHeader className="py-3 px-4">
+                <CardTitle className="text-sm font-semibold">{product.name}</CardTitle>
+              </CardHeader>
+              <CardContent className="pb-3 px-4">
+                <div className="flex flex-wrap gap-2">
+                  {product.variants.map((v) => {
+                    const price = getPrice(v.id, v.basePrice);
+                    const hasCustomPrice = selectedCustomer?.customerPrices.some((cp) => cp.productVariantId === v.id);
+                    const vLabel = [v.color?.name, v.size?.name].filter(Boolean).join("/") || "Default";
+                    return (
+                      <button
+                        key={v.id}
+                        onClick={() => addToCart(product, v)}
+                        disabled={v.stock === 0}
+                        className={`group flex flex-col items-start border rounded-lg px-3 py-2 text-left transition-all hover:border-blue-400 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed ${hasCustomPrice ? "border-green-400 bg-green-50" : ""}`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          {v.color?.hex && <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: v.color.hex }} />}
+                          <span className="text-xs font-medium">{vLabel}</span>
+                        </div>
+                        <span className="text-sm font-bold text-blue-600 mt-0.5">{formatRupiah(price)}</span>
+                        <span className={`text-[10px] mt-0.5 ${v.stock <= 5 ? "text-yellow-600" : "text-gray-400"}`}>Stok: {v.stock}</span>
+                        {hasCustomPrice && <span className="text-[10px] text-green-600 font-medium">Harga khusus</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Kanan: Cart */}
+      <div className="w-80 flex flex-col gap-3">
+        <Card className="flex-1 flex flex-col overflow-hidden">
+          <CardHeader className="py-3 px-4 border-b flex-shrink-0">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              Keranjang ({cart.length} item)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-y-auto p-0">
+            {cart.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-32 text-gray-400">
+                <ShoppingCart className="h-8 w-8 mb-2 opacity-30" />
+                <p className="text-sm">Keranjang kosong</p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {cart.map((item) => (
+                  <div key={item.variantId} className="px-4 py-3">
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{item.productName}</p>
+                        {item.variantInfo && <p className="text-xs text-gray-500">{item.variantInfo}</p>}
+                        <p className="text-xs text-blue-600 font-medium">{formatRupiah(item.price)}</p>
+                      </div>
+                      <button onClick={() => removeFromCart(item.variantId)} className="text-red-400 hover:text-red-600 ml-2 mt-0.5">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => updateQty(item.variantId, -1)} className="rounded border w-6 h-6 flex items-center justify-center hover:bg-gray-100">
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
+                        <button onClick={() => updateQty(item.variantId, 1)} className="rounded border w-6 h-6 flex items-center justify-center hover:bg-gray-100" disabled={item.quantity >= item.stock}>
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <span className="text-sm font-semibold">{formatRupiah(item.price * item.quantity)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Summary & Checkout */}
+        <Card className="shadow-none">
+          <CardContent className="p-4 space-y-3">
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between text-gray-600">
+                <span>Subtotal</span>
+                <span>{formatRupiah(subtotal)}</span>
+              </div>
+            </div>
+
+            {/* Diskon */}
+            <div className="space-y-2">
+              <Label className="text-xs">Potongan Harga (Rp)</Label>
+              <Input type="number" placeholder="0" value={discountAmount} onChange={(e) => setDiscountAmount(e.target.value)} className="h-9" />
+              {parseFloat(discountAmount) > 0 && (
+                <Input placeholder="Alasan potongan (wajib diisi)..." value={discountReason} onChange={(e) => setDiscountReason(e.target.value)} className="h-9" />
+              )}
+            </div>
+
+            <div className="border-t pt-2 flex justify-between font-bold text-base">
+              <span>Total</span>
+              <span className="text-blue-600">{formatRupiah(total)}</span>
+            </div>
+
+            <Button
+              className="w-full gap-2"
+              disabled={cart.length === 0 || !selectedCustomer}
+              onClick={() => { setPaymentAmount(String(total)); setCheckoutDialogOpen(true); }}
+            >
+              <Receipt className="h-4 w-4" />
+              Bayar
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Dialog Checkout */}
+      <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Konfirmasi Pembayaran</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <Table>
+              <TableBody>
+                {cart.map((i) => (
+                  <TableRow key={i.variantId}>
+                    <TableCell className="py-1.5">
+                      <p className="text-sm font-medium">{i.productName}</p>
+                      {i.variantInfo && <p className="text-xs text-gray-500">{i.variantInfo}</p>}
+                    </TableCell>
+                    <TableCell className="py-1.5 text-center text-sm">x{i.quantity}</TableCell>
+                    <TableCell className="py-1.5 text-right text-sm font-medium">{formatRupiah(i.price * i.quantity)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            <div className="bg-gray-50 rounded-lg p-3 space-y-1.5 text-sm">
+              <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatRupiah(subtotal)}</span></div>
+              {discount > 0 && (
+                <div className="flex justify-between text-red-600">
+                  <span>Diskon {discountReason ? `(${discountReason})` : ""}</span>
+                  <span>-{formatRupiah(discount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-base border-t pt-1.5"><span>Total</span><span className="text-blue-600">{formatRupiah(total)}</span></div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Jumlah Uang Diterima (Rp)</Label>
+              <Input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} className="text-lg font-bold" />
+              {payment >= total && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 flex justify-between text-sm">
+                  <span className="text-green-700">Kembalian</span>
+                  <span className="font-bold text-green-700">{formatRupiah(change)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCheckoutDialogOpen(false)}>Batal</Button>
+            <Button onClick={handleCheckout} disabled={processing || payment < total} className="gap-2">
+              {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Receipt className="h-4 w-4" />}
+              Selesaikan Transaksi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Struk */}
+      <Dialog open={receiptDialogOpen} onOpenChange={setReceiptDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Transaksi Berhasil!</DialogTitle></DialogHeader>
+          {lastTransaction && (
+            <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-green-600">{formatRupiah((lastTransaction as { totalAmount: number }).totalAmount)}</p>
+                <p className="text-sm text-gray-500 mt-1">No: {(lastTransaction as { transactionNumber: string }).transactionNumber}</p>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1 gap-2" onClick={downloadReceipt}>
+                  <Receipt className="h-4 w-4" />Unduh PDF
+                </Button>
+                <Button className="flex-1 gap-2" onClick={printReceipt}>
+                  <Printer className="h-4 w-4" />Cetak Struk
+                </Button>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReceiptDialogOpen(false)}>Tutup</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
