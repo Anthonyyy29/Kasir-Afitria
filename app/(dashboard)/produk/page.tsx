@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,32 +77,37 @@ export default function ProdukPage() {
 
   async function handleSave() {
     setSaving(true);
-    const body = {
-      ...form,
-      subCategoryId: form.subCategoryId || null,
-      lowStockThreshold: parseInt(form.lowStockThreshold),
-      variants: variants.map((v) => ({
-        colorId: v.colorId || null,
-        sizeId: v.sizeId || null,
-        basePrice: parseFloat(v.basePrice),
-        stock: parseInt(v.stock),
-        sku: v.sku || null,
-      })),
-    };
+    try {
+      const body = {
+        ...form,
+        subCategoryId: form.subCategoryId || null,
+        lowStockThreshold: parseInt(form.lowStockThreshold) || 5,
+        variants: variants.map((v) => ({
+          colorId: v.colorId || null,
+          sizeId: v.sizeId || null,
+          basePrice: parseFloat(v.basePrice) || 0,
+          stock: parseInt(v.stock) || 0,
+          sku: v.sku || null,
+        })),
+      };
 
-    const res = editing
-      ? await fetch(`/api/produk/${editing.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-      : await fetch("/api/produk", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const res = editing
+        ? await fetch(`/api/produk/${editing.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+        : await fetch("/api/produk", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
-    if (res.ok) {
-      toast({ title: editing ? "Produk diperbarui" : "Produk ditambahkan" });
-      setDialogOpen(false);
-      load();
-    } else {
-      const err = await res.json();
-      toast({ title: "Gagal", description: err.error, variant: "destructive" });
+      if (res.ok) {
+        toast({ title: editing ? "Produk diperbarui" : "Produk ditambahkan" });
+        setDialogOpen(false);
+        load();
+      } else {
+        const err = await res.json();
+        toast({ title: "Gagal", description: err.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Gagal", description: "Terjadi kesalahan jaringan", variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function handleDelete(p: Product) {
@@ -159,8 +164,8 @@ export default function ProdukPage() {
                     const totalStock = p.variants.reduce((s, v) => s + v.stock, 0);
                     const hasLowStock = p.variants.some((v) => v.stock <= p.lowStockThreshold);
                     return (
-                      <>
-                        <TableRow key={p.id} className="cursor-pointer" onClick={() => toggleExpand(p.id)}>
+                      <Fragment key={p.id}>
+                        <TableRow className="cursor-pointer" onClick={() => toggleExpand(p.id)}>
                           <TableCell>
                             {isExpanded ? <ChevronDown className="h-4 w-4 text-gray-400" /> : <ChevronRight className="h-4 w-4 text-gray-400" />}
                           </TableCell>
@@ -186,7 +191,7 @@ export default function ProdukPage() {
                           </TableCell>
                         </TableRow>
                         {isExpanded && (
-                          <TableRow key={`${p.id}-variants`}>
+                          <TableRow>
                             <TableCell colSpan={7} className="bg-gray-50 p-0">
                               <div className="px-8 py-3">
                                 <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Varian Produk</p>
@@ -216,7 +221,7 @@ export default function ProdukPage() {
                             </TableCell>
                           </TableRow>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })
                 )}

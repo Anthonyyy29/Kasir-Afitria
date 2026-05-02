@@ -31,26 +31,31 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { name, description, unitId, categoryId, subCategoryId, lowStockThreshold, variants } = body;
 
-  const product = await prisma.product.create({
-    data: {
-      name,
-      description,
-      unitId,
-      categoryId,
-      subCategoryId: subCategoryId || null,
-      lowStockThreshold: lowStockThreshold ?? 5,
-      variants: {
-        create: variants?.map((v: { colorId?: string; sizeId?: string; basePrice: number; stock: number; sku?: string }) => ({
-          colorId: v.colorId || null,
-          sizeId: v.sizeId || null,
-          basePrice: v.basePrice,
-          stock: v.stock,
-          sku: v.sku || null,
-        })) ?? [],
+  try {
+    const product = await prisma.product.create({
+      data: {
+        name,
+        description,
+        unitId,
+        categoryId,
+        subCategoryId: subCategoryId || null,
+        lowStockThreshold: lowStockThreshold ?? 5,
+        variants: {
+          create: variants?.map((v: { colorId?: string; sizeId?: string; basePrice: number; stock: number; sku?: string }) => ({
+            colorId: v.colorId || null,
+            sizeId: v.sizeId || null,
+            basePrice: v.basePrice,
+            stock: v.stock,
+            sku: v.sku || null,
+          })) ?? [],
+        },
       },
-    },
-    include: { variants: { include: { color: true, size: true } }, unit: true, category: true, subCategory: true },
-  });
+      include: { variants: { include: { color: true, size: true } }, unit: true, category: true, subCategory: true },
+    });
 
-  return NextResponse.json(product);
+    return NextResponse.json(product);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
