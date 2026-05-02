@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,6 +25,8 @@ interface MasterDataPageProps {
     type?: string;
     placeholder?: string;
     options?: { id: string; name: string }[];
+    /** Key objek relasi untuk tampilan tabel, misal "category" → item.category.name */
+    displayKey?: string;
   }[];
   renderExtra?: (item: Item) => React.ReactNode;
 }
@@ -136,7 +138,11 @@ export function MasterDataPage({ title, apiUrl, extraFields = [], renderExtra }:
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.name}</TableCell>
                       {extraFields.map((f) => (
-                        <TableCell key={f.key}>{String(item[f.key] ?? "-")}</TableCell>
+                        <TableCell key={f.key}>
+                          {f.displayKey
+                            ? String((item[f.displayKey] as { name?: string } | null)?.name ?? "-")
+                            : String(item[f.key] ?? "-")}
+                        </TableCell>
                       ))}
                       {renderExtra && <TableCell>{renderExtra(item)}</TableCell>}
                       <TableCell className="text-right">
