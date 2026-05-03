@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import { Sidebar } from "@/components/layout/sidebar";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { prisma } from "@/lib/prisma";
 
 async function getLowStockCount(): Promise<number> {
@@ -22,11 +22,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const lowStockCount = session.user.role === "ADMIN" ? await getLowStockCount() : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Sidebar lowStockCount={lowStockCount} />
-      <main className="pl-64">
-        <div className="p-6">{children}</div>
-      </main>
-    </div>
+    <DashboardShell lowStockCount={lowStockCount}>
+      {children}
+    </DashboardShell>
   );
 }

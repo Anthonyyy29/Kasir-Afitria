@@ -33,6 +33,7 @@ export default function KasirPage() {
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<Record<string, unknown> | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"produk" | "keranjang">("produk");
 
   const loadData = useCallback(async () => {
     const [pRes, cRes] = await Promise.all([fetch("/api/produk"), fetch("/api/pelanggan")]);
@@ -189,9 +190,31 @@ export default function KasirPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-6rem)] flex gap-4">
+    <div className="flex flex-col gap-3 h-[calc(100vh-4.5rem)] lg:h-[calc(100vh-5.5rem)]">
+      {/* Tab switcher — mobile only */}
+      <div className="flex lg:hidden rounded-lg bg-gray-100 p-1 gap-1 shrink-0">
+        <button
+          onClick={() => setMobileTab("produk")}
+          className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${mobileTab === "produk" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
+        >
+          Produk
+        </button>
+        <button
+          onClick={() => setMobileTab("keranjang")}
+          className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${mobileTab === "keranjang" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
+        >
+          Keranjang
+          {cart.length > 0 && (
+            <span className="bg-blue-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+              {cart.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      <div className="flex gap-4 flex-1 overflow-hidden">
       {/* Kiri: Produk */}
-      <div className="flex-1 flex flex-col gap-3 min-w-0">
+      <div className={`flex-1 flex-col gap-3 min-w-0 ${mobileTab === "keranjang" ? "hidden lg:flex" : "flex"}`}>
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -258,7 +281,7 @@ export default function KasirPage() {
       </div>
 
       {/* Kanan: Cart */}
-      <div className="w-80 flex flex-col gap-3">
+      <div className={`w-full lg:w-80 flex-col gap-3 ${mobileTab === "produk" ? "hidden lg:flex" : "flex"}`}>
         <Card className="flex-1 flex flex-col overflow-hidden">
           <CardHeader className="py-3 px-4 border-b flex-shrink-0">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -339,6 +362,7 @@ export default function KasirPage() {
             </Button>
           </CardContent>
         </Card>
+      </div>
       </div>
 
       {/* Dialog Checkout */}
