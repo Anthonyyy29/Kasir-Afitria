@@ -36,17 +36,47 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     });
 
     if (Array.isArray(variants)) {
-      await tx.productVariant.deleteMany({ where: { productId: id } });
-      await tx.productVariant.createMany({
-        data: variants.map((v: { colorId?: string; sizeId?: string; basePrice: number; stock: number; sku?: string }) => ({
-          productId: id,
-          colorId: v.colorId || null,
-          sizeId: v.sizeId || null,
-          basePrice: v.basePrice,
-          stock: v.stock ?? 0,
-          sku: v.sku || null,
-        })),
+      type VariantInput = { colorId?: string; sizeId?: string; basePrice: number; stock: number; sku?: string };
+      const existingVariants = await tx.productVariant.findMany({
+        where: { productId: id },
+        include: { _count: { select: { transactionItems: true } } },
       });
+
+      const existingMap = new Map(
+        existingVariants.map((ev) => [`${ev.colorId ?? ""}|${ev.sizeId ?? ""}`, ev])
+      );
+      const newKeys = new Set(variants.map((v: VariantInput) => `${v.colorId || ""}|${v.sizeId || ""}`));
+
+      // Hapus varian yang dihilangkan, hanya jika belum pernah ada di transaksi
+      for (const ev of existingVariants) {
+        const key = `${ev.colorId ?? ""}|${ev.sizeId ?? ""}`;
+        if (!newKeys.has(key) && ev._count.transactionItems === 0) {
+          await tx.productVariant.delete({ where: { id: ev.id } });
+        }
+      }
+
+      // Update varian yang sudah ada, buat baru kalau belum ada
+      for (const v of variants as VariantInput[]) {
+        const key = `${v.colorId || ""}|${v.sizeId || ""}`;
+        const existing = existingMap.get(key);
+        if (existing) {
+          await tx.productVariant.update({
+            where: { id: existing.id },
+            data: { basePrice: v.basePrice, stock: v.stock ?? 0, sku: v.sku || null },
+          });
+        } else {
+          await tx.productVariant.create({
+            data: {
+              productId: id,
+              colorId: v.colorId || null,
+              sizeId: v.sizeId || null,
+              basePrice: v.basePrice,
+              stock: v.stock ?? 0,
+              sku: v.sku || null,
+            },
+          });
+        }
+      }
     }
 
     return tx.product.findUnique({
