@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronRight, PackageSearch } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronRight, PackageSearch, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatRupiah } from "@/lib/utils";
 
@@ -110,6 +110,13 @@ export default function ProdukPage() {
     }
   }
 
+  async function handleSalin(p: Product) {
+    if (!confirm(`Salin produk "${p.name}"?`)) return;
+    const res = await fetch(`/api/produk/${p.id}/salin`, { method: "POST" });
+    if (res.ok) { toast({ title: "Produk disalin", description: `"${p.name} (Salinan)" berhasil dibuat` }); load(); }
+    else toast({ title: "Gagal menyalin", variant: "destructive" });
+  }
+
   async function handleDelete(p: Product) {
     if (!confirm(`Hapus produk "${p.name}"?`)) return;
     const res = await fetch(`/api/produk/${p.id}`, { method: "DELETE" });
@@ -186,6 +193,7 @@ export default function ProdukPage() {
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex gap-1 justify-end">
                               <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleSalin(p)} title="Salin produk"><Copy className="h-4 w-4" /></Button>
                               <Button variant="ghost" size="icon" onClick={() => handleDelete(p)} className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>
                             </div>
                           </TableCell>
