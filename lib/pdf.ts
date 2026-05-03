@@ -34,7 +34,7 @@ export function generateReceiptPDF(trx: TransactionData): jsPDF {
 
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text("KASIR AFITRIA", cx, y, { align: "center" });
+  doc.text("AFITRIA SOCK", cx, y, { align: "center" });
   y += 6;
 
   doc.setFontSize(8);
@@ -116,7 +116,7 @@ export function generateNotaPDF(trx: TransactionData): jsPDF {
   // Header
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("KASIR AFITRIA", margin, y);
+  doc.text("AFITRIA SOCK", margin, y);
 
   doc.setFontSize(20);
   doc.setTextColor(60, 90, 180);
@@ -233,7 +233,7 @@ export function generateSuratJalanPDF(trx: TransactionData): jsPDF {
   // Header
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("KASIR AFITRIA", margin, y);
+  doc.text("AFITRIA SOCK", margin, y);
 
   doc.setFontSize(20);
   doc.setTextColor(40, 120, 60);
