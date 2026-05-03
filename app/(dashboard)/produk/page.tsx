@@ -291,6 +291,25 @@ export default function ProdukPage() {
                   <Plus className="h-3.5 w-3.5 mr-1" />Tambah Varian
                 </Button>
               </div>
+              <div className="flex gap-2 items-end p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-xs text-blue-700">Terapkan Harga ke Semua (Rp)</Label>
+                  <Input className="h-8 text-sm" type="number" placeholder="Kosongkan jika tidak diubah" id="bulk-price" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Label className="text-xs text-blue-700">Terapkan Stok ke Semua</Label>
+                  <Input className="h-8 text-sm" type="number" placeholder="Kosongkan jika tidak diubah" id="bulk-stock" />
+                </div>
+                <Button type="button" size="sm" className="h-8 shrink-0" variant="secondary" onClick={() => {
+                  const price = (document.getElementById("bulk-price") as HTMLInputElement).value;
+                  const stock = (document.getElementById("bulk-stock") as HTMLInputElement).value;
+                  setVariants(variants.map((v) => ({
+                    ...v,
+                    ...(price !== "" ? { basePrice: price } : {}),
+                    ...(stock !== "" ? { stock } : {}),
+                  })));
+                }}>Terapkan</Button>
+              </div>
               {variants.map((v, i) => (
                 <div key={i} className="border rounded-lg p-3 space-y-3 bg-gray-50">
                   <div className="flex items-center justify-between">
