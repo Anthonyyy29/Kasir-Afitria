@@ -46,7 +46,7 @@ export default function LoginPage() {
         <div className="bg-blue-600 rounded-2xl p-4 shadow-lg mb-4">
           <ShoppingCart className="h-10 w-10 text-white" />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">Kasir Mamak</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Kasir Afitria</h1>
         <p className="text-gray-500 mt-1">Siapa yang akan menggunakan kasir sekarang?</p>
       </div>
 

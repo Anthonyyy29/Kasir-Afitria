@@ -67,7 +67,7 @@ export function Sidebar({ lowStockCount = 0 }: SidebarProps) {
           <ShoppingCart className="h-5 w-5 text-white" />
         </div>
         <div>
-          <p className="font-bold text-white">Kasir Mamak</p>
+          <p className="font-bold text-white">Kasir Afitria</p>
           <p className="text-xs text-gray-400 capitalize">{session?.user?.role?.toLowerCase()}</p>
         </div>
       </div>

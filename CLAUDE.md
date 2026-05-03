@@ -1,4 +1,4 @@
-# Kasir Mamak — Project Context
+# Kasir Afitria — Project Context
 
 ## Ringkasan Proyek
 Aplikasi kasir berbasis web (Next.js 16 + Supabase + Prisma) untuk satu toko.

@@ -7,7 +7,7 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Kasir Mamak",
+  title: "Kasir Afitria",
   description: "Sistem Kasir Modern",
 };
 

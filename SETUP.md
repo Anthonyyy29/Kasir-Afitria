@@ -1,4 +1,4 @@
-# Setup Guide — Kasir Mamak
+# Setup Guide — Kasir Afitria
 
 ## Langkah 1: Buat Database di Supabase
 
@@ -55,7 +55,7 @@ Buka http://localhost:3000
 2. Buka https://vercel.com dan import repository
 3. Di Environment Variables, isi:
    - `DATABASE_URL` = URL Supabase
-   - `NEXTAUTH_URL` = URL domain Vercel Anda (misal: https://kasir-mamak.vercel.app)
+   - `NEXTAUTH_URL` = URL domain Vercel Anda (misal: https://kasir-afitria.vercel.app)
    - `NEXTAUTH_SECRET` = string acak yang sudah dibuat
 4. Deploy!
 
