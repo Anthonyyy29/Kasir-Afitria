@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck, FileDown, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatRupiah } from "@/lib/utils";
 
@@ -143,7 +143,14 @@ export default function KasirPage() {
 
     if (res.ok) {
       const trx = await res.json();
-      setLastTransaction(trx);
+      const trxWithUnit = {
+        ...trx,
+        items: trx.items.map((item: { productVariantId: string }) => ({
+          ...item,
+          unit: cart.find((c) => c.variantId === item.productVariantId)?.unit ?? "pcs",
+        })),
+      };
+      setLastTransaction(trxWithUnit);
       setCart([]);
       setDiscountAmount("");
       setDiscountReason("");
@@ -166,11 +173,19 @@ export default function KasirPage() {
     window.open(doc.output("bloburl"), "_blank");
   }
 
-  async function downloadReceipt() {
+  async function downloadNota() {
     if (!lastTransaction) return;
-    const { generateReceiptPDF } = await import("@/lib/pdf");
-    const doc = generateReceiptPDF(lastTransaction as unknown as Parameters<typeof generateReceiptPDF>[0]);
-    doc.save(`struk-${(lastTransaction as { transactionNumber: string }).transactionNumber}.pdf`);
+    const { generateNotaPDF } = await import("@/lib/pdf");
+    const doc = generateNotaPDF(lastTransaction as unknown as Parameters<typeof generateNotaPDF>[0]);
+    doc.save(`nota-${(lastTransaction as { transactionNumber: string }).transactionNumber}.pdf`);
+  }
+
+  async function printSuratJalan() {
+    if (!lastTransaction) return;
+    const { generateSuratJalanPDF } = await import("@/lib/pdf");
+    const doc = generateSuratJalanPDF(lastTransaction as unknown as Parameters<typeof generateSuratJalanPDF>[0]);
+    doc.autoPrint();
+    window.open(doc.output("bloburl"), "_blank");
   }
 
   return (
@@ -386,7 +401,7 @@ export default function KasirPage() {
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Transaksi Berhasil!</DialogTitle>
-            <DialogDescription className="sr-only">Transaksi selesai. Unduh atau cetak struk pembayaran.</DialogDescription>
+            <DialogDescription className="sr-only">Transaksi selesai. Unduh nota atau cetak struk dan surat jalan.</DialogDescription>
           </DialogHeader>
           {lastTransaction && (
             <div className="space-y-4">
@@ -394,12 +409,15 @@ export default function KasirPage() {
                 <p className="text-2xl font-bold text-green-600">{formatRupiah((lastTransaction as { totalAmount: number }).totalAmount)}</p>
                 <p className="text-sm text-gray-500 mt-1">No: {(lastTransaction as { transactionNumber: string }).transactionNumber}</p>
               </div>
-              <div className="flex gap-3">
-                <Button variant="outline" className="flex-1 gap-2" onClick={downloadReceipt}>
-                  <Receipt className="h-4 w-4" />Unduh PDF
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 gap-2" onClick={downloadNota}>
+                  <FileDown className="h-4 w-4" />Download Nota
                 </Button>
-                <Button className="flex-1 gap-2" onClick={printReceipt}>
+                <Button variant="outline" className="flex-1 gap-2" onClick={printReceipt}>
                   <Printer className="h-4 w-4" />Cetak Struk
+                </Button>
+                <Button variant="outline" className="flex-1 gap-2" onClick={printSuratJalan}>
+                  <Truck className="h-4 w-4" />Surat Jalan
                 </Button>
               </div>
             </div>
