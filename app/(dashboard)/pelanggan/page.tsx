@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, Users, Tag, Search, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Users, Tag, Search, Check, Download, Upload } from "lucide-react";
+import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 import { formatRupiah } from "@/lib/utils";
 
@@ -33,6 +34,7 @@ export default function PelangganPage() {
   const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
   const [savingVariants, setSavingVariants] = useState<Set<string>>(new Set());
   const [savedVariants, setSavedVariants] = useState<Set<string>>(new Set());
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -162,6 +164,88 @@ export default function PelangganPage() {
     setSavingVariants(prev => { const s = new Set(prev); s.delete(variantId); return s; });
   }
 
+  function handleExport() {
+    if (!selectedCustomer) return;
+    const rows = allVariants.map(v => ({
+      "ID Varian (jangan diubah)": v.id,
+      "Produk": v.product.name,
+      "Warna": v.color?.name ?? "-",
+      "Ukuran": v.size?.name ?? "-",
+      "Harga Dasar": parseFloat(v.basePrice),
+      "Harga Khusus": localPrices[v.id] ? parseFloat(localPrices[v.id]) : "",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    // Lebar kolom
+    ws["!cols"] = [
+      { wch: 38 }, // ID Varian
+      { wch: 24 }, // Produk
+      { wch: 14 }, // Warna
+      { wch: 12 }, // Ukuran
+      { wch: 16 }, // Harga Dasar
+      { wch: 16 }, // Harga Khusus
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Harga Khusus");
+    XLSX.writeFile(wb, `harga-khusus-${selectedCustomer.name.toLowerCase().replace(/\s+/g, "-")}.xlsx`);
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!selectedCustomer || !e.target.files?.[0]) return;
+    setImporting(true);
+
+    try {
+      const file = e.target.files[0];
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, string | number>>(ws);
+
+      const items = rows
+        .filter(r => r["ID Varian (jangan diubah)"])
+        .map(r => ({
+          productVariantId: String(r["ID Varian (jangan diubah)"]),
+          price: r["Harga Khusus"] ? parseFloat(String(r["Harga Khusus"])) : null,
+        }));
+
+      if (items.length === 0) {
+        toast({ title: "File tidak valid atau kosong", variant: "destructive" });
+        setImporting(false);
+        e.target.value = "";
+        return;
+      }
+
+      const res = await fetch(`/api/pelanggan/${selectedCustomer.id}/harga/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(items),
+      });
+
+      if (res.ok) {
+        const { upserted, deleted } = await res.json();
+        toast({ title: `Import berhasil — ${upserted} harga diset, ${deleted} dihapus` });
+
+        // Refresh data pelanggan & localPrices
+        const detail: CustomerDetail = await fetch(`/api/pelanggan/${selectedCustomer.id}`).then(r => r.json());
+        setSelectedCustomer(detail);
+        const prices: Record<string, string> = {};
+        for (const cp of detail.customerPrices) {
+          prices[cp.productVariantId] = String(cp.price);
+        }
+        setLocalPrices(prices);
+      } else {
+        toast({ title: "Gagal import", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "File tidak bisa dibaca", variant: "destructive" });
+    }
+
+    setImporting(false);
+    e.target.value = "";
+  }
+
   const variantLabel = (v: Variant) => {
     const parts = [v.product.name];
     if (v.color) parts.push(v.color.name);
@@ -273,7 +357,7 @@ export default function PelangganPage() {
       <Dialog open={priceDialogOpen} onOpenChange={setPriceDialogOpen}>
         <DialogContent className="max-w-2xl" aria-describedby={undefined}>
           <DialogHeader>
-            <div className="flex items-center justify-between pr-6">
+            <div className="flex items-start justify-between pr-6">
               <div>
                 <DialogTitle>Harga Khusus — {selectedCustomer?.name ?? "..."}</DialogTitle>
                 <p className="text-sm text-gray-500 mt-0.5">
@@ -282,6 +366,23 @@ export default function PelangganPage() {
                     : "Belum ada harga khusus — isi kolom untuk menetapkan"}
                 </p>
               </div>
+              {selectedCustomer && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
+                    <Download className="h-3.5 w-3.5" />
+                    Export
+                  </Button>
+                  <label>
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs" disabled={importing} asChild>
+                      <span>
+                        {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                        Import
+                      </span>
+                    </Button>
+                    <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} disabled={importing} />
+                  </label>
+                </div>
+              )}
             </div>
             <DialogDescription className="sr-only">Kelola harga khusus varian produk untuk pelanggan ini</DialogDescription>
           </DialogHeader>
