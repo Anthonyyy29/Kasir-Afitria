@@ -7,9 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Loader2, Users, Tag, X } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Pencil, Trash2, Loader2, Users, Tag, Search, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatRupiah } from "@/lib/utils";
 
@@ -30,7 +29,10 @@ export default function PelangganPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "" });
   const [allVariants, setAllVariants] = useState<Variant[]>([]);
-  const [priceForm, setPriceForm] = useState({ productVariantId: "", price: "" });
+  const [variantSearch, setVariantSearch] = useState("");
+  const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
+  const [savingVariants, setSavingVariants] = useState<Set<string>>(new Set());
+  const [savedVariants, setSavedVariants] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,26 +61,36 @@ export default function PelangganPage() {
   }
 
   async function openPriceDialog(c: Customer) {
-    const res = await fetch(`/api/pelanggan/${c.id}`);
-    if (res.ok) {
-      const detail = await res.json();
-      setSelectedCustomer(detail);
-    }
-    if (allVariants.length === 0) {
-      const pRes = await fetch("/api/produk");
-      if (pRes.ok) {
-        const products = await pRes.json();
-        const variants: Variant[] = [];
-        for (const p of products) {
-          for (const v of p.variants) {
-            variants.push({ ...v, product: { name: p.name } });
-          }
-        }
-        setAllVariants(variants);
-      }
-    }
-    setPriceForm({ productVariantId: "", price: "" });
+    setSelectedCustomer(null);
+    setLocalPrices({});
+    setVariantSearch("");
     setPriceDialogOpen(true);
+
+    const [detailRes, produkRes] = await Promise.all([
+      fetch(`/api/pelanggan/${c.id}`),
+      allVariants.length === 0 ? fetch("/api/produk") : Promise.resolve(null),
+    ]);
+
+    if (detailRes.ok) {
+      const detail: CustomerDetail = await detailRes.json();
+      setSelectedCustomer(detail);
+      const prices: Record<string, string> = {};
+      for (const cp of detail.customerPrices) {
+        prices[cp.productVariantId] = String(cp.price);
+      }
+      setLocalPrices(prices);
+    }
+
+    if (produkRes?.ok) {
+      const products = await produkRes.json();
+      const variants: Variant[] = [];
+      for (const p of products) {
+        for (const v of p.variants) {
+          variants.push({ ...v, product: { name: p.name } });
+        }
+      }
+      setAllVariants(variants);
+    }
   }
 
   async function handleSave() {
@@ -103,39 +115,65 @@ export default function PelangganPage() {
     else toast({ title: "Gagal menghapus", variant: "destructive" });
   }
 
-  async function handleAddPrice() {
-    if (!selectedCustomer || !priceForm.productVariantId || !priceForm.price) return;
-    setSaving(true);
-    const res = await fetch(`/api/pelanggan/${selectedCustomer.id}/harga`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productVariantId: priceForm.productVariantId, price: parseFloat(priceForm.price) }),
-    });
-    if (res.ok) {
-      toast({ title: "Harga khusus disimpan" });
-      const detail = await fetch(`/api/pelanggan/${selectedCustomer.id}`).then((r) => r.json());
-      setSelectedCustomer(detail);
-      setPriceForm({ productVariantId: "", price: "" });
-    } else toast({ title: "Gagal simpan harga", variant: "destructive" });
-    setSaving(false);
-  }
-
-  async function handleDeletePrice(variantId: string) {
+  async function handlePriceBlur(variantId: string) {
     if (!selectedCustomer) return;
-    const res = await fetch(`/api/pelanggan/${selectedCustomer.id}/harga?variantId=${variantId}`, { method: "DELETE" });
-    if (res.ok) {
-      const detail = await fetch(`/api/pelanggan/${selectedCustomer.id}`).then((r) => r.json());
-      setSelectedCustomer(detail);
-      toast({ title: "Harga khusus dihapus" });
+    const value = localPrices[variantId] ?? "";
+    const prevPrice = selectedCustomer.customerPrices.find(cp => cp.productVariantId === variantId);
+    const prevValue = prevPrice ? String(prevPrice.price) : "";
+
+    if (value === prevValue) return;
+
+    setSavingVariants(prev => new Set(prev).add(variantId));
+
+    if (value === "") {
+      if (prevPrice) {
+        await fetch(`/api/pelanggan/${selectedCustomer.id}/harga?variantId=${variantId}`, { method: "DELETE" });
+        setSelectedCustomer(prev => prev ? {
+          ...prev,
+          customerPrices: prev.customerPrices.filter(cp => cp.productVariantId !== variantId),
+        } : prev);
+      }
+    } else {
+      const price = parseFloat(value);
+      if (isNaN(price) || price <= 0) {
+        setSavingVariants(prev => { const s = new Set(prev); s.delete(variantId); return s; });
+        return;
+      }
+      const res = await fetch(`/api/pelanggan/${selectedCustomer.id}/harga`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productVariantId: variantId, price }),
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        setSelectedCustomer(prev => {
+          if (!prev) return prev;
+          const existing = prev.customerPrices.find(cp => cp.productVariantId === variantId);
+          if (existing) {
+            return { ...prev, customerPrices: prev.customerPrices.map(cp => cp.productVariantId === variantId ? saved : cp) };
+          }
+          return { ...prev, customerPrices: [...prev.customerPrices, saved] };
+        });
+        setSavedVariants(prev => new Set(prev).add(variantId));
+        setTimeout(() => setSavedVariants(prev => { const s = new Set(prev); s.delete(variantId); return s; }), 1500);
+      }
     }
+
+    setSavingVariants(prev => { const s = new Set(prev); s.delete(variantId); return s; });
   }
 
   const variantLabel = (v: Variant) => {
     const parts = [v.product.name];
     if (v.color) parts.push(v.color.name);
     if (v.size) parts.push(v.size.name);
-    return parts.join(" - ");
+    return parts.join(" — ");
   };
+
+  const filteredVariants = allVariants.filter(v =>
+    variantLabel(v).toLowerCase().includes(variantSearch.toLowerCase())
+  );
+
+  const specialPriceCount = Object.values(localPrices).filter(v => v !== "").length;
 
   return (
     <div className="space-y-4">
@@ -222,77 +260,113 @@ export default function PelangganPage() {
               </div>
             ))}
           </div>
-          <DialogFooter>
+          <div className="flex justify-end gap-2 mt-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
             <Button onClick={handleSave} disabled={saving || !form.name}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simpan"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Dialog harga khusus pelanggan */}
       <Dialog open={priceDialogOpen} onOpenChange={setPriceDialogOpen}>
-        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
+        <DialogContent className="max-w-2xl" aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>Harga Khusus — {selectedCustomer?.name}</DialogTitle>
+            <div className="flex items-center justify-between pr-6">
+              <div>
+                <DialogTitle>Harga Khusus — {selectedCustomer?.name ?? "..."}</DialogTitle>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {specialPriceCount > 0
+                    ? `${specialPriceCount} varian dengan harga khusus`
+                    : "Belum ada harga khusus — isi kolom untuk menetapkan"}
+                </p>
+              </div>
+            </div>
             <DialogDescription className="sr-only">Kelola harga khusus varian produk untuk pelanggan ini</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
-              Harga di sini akan digunakan saat pelanggan ini dipilih di kasir. Jika tidak diatur, harga dasar produk yang berlaku.
-            </div>
 
-            {/* Form tambah harga */}
-            <div className="space-y-3 border rounded-lg p-3">
-              <p className="text-sm font-medium">Tambah Harga Khusus</p>
-              <div className="space-y-2">
-                <Label className="text-xs">Pilih Varian Produk</Label>
-                <Select value={priceForm.productVariantId} onValueChange={(v) => setPriceForm({ ...priceForm, productVariantId: v })}>
-                  <SelectTrigger><SelectValue placeholder="Pilih produk / varian" /></SelectTrigger>
-                  <SelectContent>
-                    {allVariants.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {variantLabel(v)} — {formatRupiah(v.basePrice)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          {!selectedCustomer ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+          ) : (
+            <div className="space-y-3">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  className="pl-9"
+                  placeholder="Cari produk / varian..."
+                  value={variantSearch}
+                  onChange={(e) => setVariantSearch(e.target.value)}
+                />
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Harga Khusus (Rp)</Label>
-                <Input type="number" placeholder="0" value={priceForm.price} onChange={(e) => setPriceForm({ ...priceForm, price: e.target.value })} />
-              </div>
-              <Button size="sm" onClick={handleAddPrice} disabled={saving || !priceForm.productVariantId || !priceForm.price} className="w-full">
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Plus className="h-3.5 w-3.5 mr-1" />}
-                Simpan Harga Khusus
-              </Button>
-            </div>
 
-            {/* Daftar harga khusus yang sudah ada */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Harga Khusus Terdaftar ({selectedCustomer?.customerPrices.length ?? 0})</p>
-              {selectedCustomer?.customerPrices.length === 0 ? (
-                <p className="text-sm text-gray-400 py-2">Belum ada harga khusus</p>
-              ) : (
-                selectedCustomer?.customerPrices.map((cp) => (
-                  <div key={cp.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
-                    <div>
-                      <span className="font-medium">{cp.productVariant.product.name}</span>
-                      {cp.productVariant.color && <span className="text-gray-500"> — {cp.productVariant.color.name}</span>}
-                      {cp.productVariant.size && <span className="text-gray-500"> / {cp.productVariant.size.name}</span>}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-semibold text-blue-600">{formatRupiah(cp.price)}</span>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600" onClick={() => handleDeletePrice(cp.productVariantId)}>
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
+              {/* Tabel */}
+              <div className="border rounded-lg overflow-hidden">
+                <div className="max-h-[52vh] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-white z-10">
+                      <TableRow>
+                        <TableHead>Produk</TableHead>
+                        <TableHead>Warna</TableHead>
+                        <TableHead>Ukuran</TableHead>
+                        <TableHead className="text-right">Harga Dasar</TableHead>
+                        <TableHead className="text-right w-[160px]">Harga Khusus (Rp)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredVariants.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-gray-400 py-8">
+                            {allVariants.length === 0 ? "Memuat produk..." : "Tidak ada produk ditemukan"}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredVariants.map((v) => {
+                          const hasSpecial = !!(localPrices[v.id] && localPrices[v.id] !== "");
+                          const isSaving = savingVariants.has(v.id);
+                          const isSaved = savedVariants.has(v.id);
+                          return (
+                            <TableRow key={v.id} className={hasSpecial ? "bg-blue-50/60" : ""}>
+                              <TableCell className="font-medium text-sm">{v.product.name}</TableCell>
+                              <TableCell className="text-sm text-gray-600">{v.color?.name ?? "-"}</TableCell>
+                              <TableCell className="text-sm text-gray-600">{v.size?.name ?? "-"}</TableCell>
+                              <TableCell className="text-right text-sm text-gray-500">{formatRupiah(v.basePrice)}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="relative flex items-center justify-end gap-1.5">
+                                  <Input
+                                    type="number"
+                                    placeholder="—"
+                                    value={localPrices[v.id] ?? ""}
+                                    onChange={(e) => setLocalPrices(prev => ({ ...prev, [v.id]: e.target.value }))}
+                                    onBlur={() => handlePriceBlur(v.id)}
+                                    onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                                    className={[
+                                      "w-32 text-right text-sm h-8",
+                                      hasSpecial ? "border-blue-400 bg-white font-medium text-blue-700" : "",
+                                    ].join(" ")}
+                                    disabled={isSaving}
+                                  />
+                                  <div className="w-4 flex-shrink-0">
+                                    {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
+                                    {isSaved && !isSaving && <Check className="h-3.5 w-3.5 text-green-500" />}
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-400">
+                Ketik harga lalu tekan <kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 font-mono">Enter</kbd> atau klik di luar untuk menyimpan. Kosongkan untuk menghapus harga khusus.
+              </p>
             </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
