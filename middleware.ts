@@ -24,6 +24,6 @@ export const config = {
     "/api/warna/:path*",
     "/api/ukuran/:path*",
     "/api/varian/:path*",
-    "/api/users/:path*",
+    "/api/users/:id",
   ],
 };
