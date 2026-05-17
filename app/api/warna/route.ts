@@ -4,16 +4,26 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const colors = await prisma.color.findMany({ orderBy: { name: "asc" } });
-  return NextResponse.json(colors);
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const colors = await prisma.color.findMany({ orderBy: { name: "asc" } });
+    return NextResponse.json(colors);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const { name, hex } = await req.json();
-  const color = await prisma.color.create({ data: { name, hex: hex || null } });
-  return NextResponse.json(color);
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const { name, hex } = await req.json();
+    const color = await prisma.color.create({ data: { name, hex: hex || null } });
+    return NextResponse.json(color);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
