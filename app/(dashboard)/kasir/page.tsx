@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,14 +12,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck, FileDown, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatRupiah } from "@/lib/utils";
+import { useCartSession, type CartItem } from "@/hooks/use-cart-session";
+import { CartPanel, CartPanelButton } from "@/components/kasir/cart-panel";
 
 interface Variant { id: string; colorId: string | null; sizeId: string | null; basePrice: string; stock: number; color: { name: string; hex: string | null } | null; size: { name: string } | null; }
 interface Product { id: string; name: string; unit: { name: string }; variants: Variant[]; }
 interface Customer { id: string; name: string; phone: string | null; customerPrices: { productVariantId: string; price: string }[]; }
-interface CartItem { variantId: string; productId: string; productName: string; variantInfo: string; price: number; basePrice: number; quantity: number; stock: number; unit: string; }
 
 export default function KasirPage() {
   const { toast } = useToast();
+  const {
+    sessions,
+    activeCartId,
+    activeSession,
+    isLoading: sessionLoading,
+    createSession,
+    switchSession,
+    deleteSession,
+    syncToDb,
+  } = useCartSession();
+
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const isSwitchingRef = useRef(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<{ id: string; name: string; phone: string | null }[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -42,6 +56,41 @@ export default function KasirPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    if (!activeSession || sessionLoading) return;
+    isSwitchingRef.current = true;
+    setCart(activeSession.items);
+    setDiscountAmount(
+      activeSession.discountAmount > 0 ? String(activeSession.discountAmount) : ""
+    );
+    setDiscountReason(activeSession.discountReason ?? "");
+
+    if (activeSession.customerId) {
+      setLoadingCustomer(true);
+      fetch(`/api/pelanggan/${activeSession.customerId}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((c) => setSelectedCustomer(c ?? null))
+        .catch(() => setSelectedCustomer(null))
+        .finally(() => {
+          setLoadingCustomer(false);
+          isSwitchingRef.current = false;
+        });
+    } else {
+      setSelectedCustomer(null);
+      isSwitchingRef.current = false;
+    }
+  }, [activeCartId, sessionLoading]);
+
+  useEffect(() => {
+    if (isSwitchingRef.current || !activeCartId || sessionLoading) return;
+    syncToDb(activeCartId, {
+      customerId: selectedCustomer?.id ?? null,
+      items: cart,
+      discountAmount: parseFloat(discountAmount || "0"),
+      discountReason: discountReason || null,
+    });
+  }, [cart, selectedCustomer, discountAmount, discountReason, activeCartId, syncToDb, sessionLoading]);
 
   async function handleSelectCustomer(customerId: string) {
     if (!customerId) { setSelectedCustomer(null); recalcCartPrices(null); return; }
@@ -159,6 +208,7 @@ export default function KasirPage() {
       setCheckoutDialogOpen(false);
       setReceiptDialogOpen(true);
       await loadData();
+      if (activeCartId) await deleteSession(activeCartId);
       toast({ title: "Transaksi berhasil!" });
     } else {
       toast({ title: "Transaksi gagal", variant: "destructive" });
@@ -234,6 +284,10 @@ export default function KasirPage() {
               </SelectContent>
             </Select>
           </div>
+          <CartPanelButton
+            count={sessions.length}
+            onClick={() => setIsPanelOpen(true)}
+          />
           {loadingCustomer && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
           {selectedCustomer && <Badge variant="success" className="gap-1 whitespace-nowrap"><UserCheck className="h-3 w-3" />{selectedCustomer.name}</Badge>}
         </div>
@@ -364,6 +418,16 @@ export default function KasirPage() {
         </Card>
       </div>
       </div>
+
+      <CartPanel
+        open={isPanelOpen}
+        onOpenChange={setIsPanelOpen}
+        sessions={sessions}
+        activeCartId={activeCartId}
+        onSwitch={(id) => { switchSession(id); setIsPanelOpen(false); }}
+        onDelete={deleteSession}
+        onCreateNew={async () => { await createSession(); setIsPanelOpen(false); }}
+      />
 
       {/* Dialog Checkout */}
       <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
