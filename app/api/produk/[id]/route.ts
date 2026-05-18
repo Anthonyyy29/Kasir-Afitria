@@ -48,7 +48,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
       if (Array.isArray(variants)) {
         const existingVariants = await tx.productVariant.findMany({
-          where: { productId: id },
+          where: { productId: id, deletedAt: null },
           select: { id: true, colorId: true, sizeId: true, _count: { select: { transactionItems: true } } },
         });
 
@@ -89,7 +89,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
       return tx.product.findUnique({
         where: { id: updated.id },
-        include: { unit: true, category: true, subCategory: true, variants: { include: { color: true, size: true } } },
+        include: { unit: true, category: true, subCategory: true, variants: { where: { deletedAt: null }, include: { color: true, size: true } } },
       });
     }, { maxWait: 10000, timeout: 30000 });
 
