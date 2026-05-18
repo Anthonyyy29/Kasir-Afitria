@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
   ShoppingCart, LayoutDashboard, Package, Users, BarChart3,
-  Settings, LogOut, Tag, Layers, Ruler, Palette, ChevronDown, ChevronRight, Bell, X,
+  Settings, LogOut, Tag, Layers, Ruler, Palette, ChevronDown, ChevronRight, Bell, X, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ const navItems: NavItem[] = [
   { label: "Pelanggan", href: "/pelanggan", icon: Users, adminOnly: true },
   { label: "Laporan", href: "/laporan", icon: BarChart3, adminOnly: true },
   { label: "Pengguna", href: "/pengguna", icon: Settings, adminOnly: true },
+  { label: "Sampah", href: "/sampah", icon: Trash2, adminOnly: true },
 ];
 
 interface SidebarProps {
