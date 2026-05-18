@@ -16,12 +16,15 @@ enum Role {
 model User {
   id           String        @id @default(cuid())
   name         String
-  email        String        @unique
+  email        String
   password     String
   role         Role          @default(KASIR)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
   transactions Transaction[]
+
+  @@index([deletedAt])
 }
 
 model Customer {
@@ -32,44 +35,60 @@ model Customer {
   address        String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
   transactions   Transaction[]
   customerPrices CustomerPrice[]
+
+  @@index([deletedAt])
 }
 
 model Unit {
-  id       String    @id @default(cuid())
-  name     String    @unique
-  products Product[]
+  id        String    @id @default(cuid())
+  name      String
+  deletedAt DateTime?
+  products  Product[]
+
+  @@index([deletedAt])
 }
 
 model Category {
   id            String        @id @default(cuid())
-  name          String        @unique
+  name          String
+  deletedAt     DateTime?
   subCategories SubCategory[]
   products      Product[]
+
+  @@index([deletedAt])
 }
 
 model SubCategory {
   id         String    @id @default(cuid())
   name       String
   categoryId String
+  deletedAt  DateTime?
   category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   products   Product[]
 
-  @@unique([name, categoryId])
+  @@index([deletedAt])
 }
 
 model Color {
-  id       String           @id @default(cuid())
-  name     String           @unique
-  hex      String?
-  variants ProductVariant[]
+  id        String           @id @default(cuid())
+  name      String
+  hex       String?
+  deletedAt DateTime?
+  variants  ProductVariant[]
+
+  @@index([deletedAt])
 }
 
 model Size {
-  id       String           @id @default(cuid())
-  name     String           @unique
-  variants ProductVariant[]
+  id        String           @id @default(cuid())
+  name      String
+  deletedAt DateTime?
+  variants  ProductVariant[]
+
+  @@index([deletedAt])
 }
 
 model Product {
@@ -82,10 +101,13 @@ model Product {
   lowStockThreshold Int              @default(5)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
+  deletedAt         DateTime?
   unit              Unit             @relation(fields: [unitId], references: [id])
   category          Category         @relation(fields: [categoryId], references: [id])
   subCategory       SubCategory?     @relation(fields: [subCategoryId], references: [id])
   variants          ProductVariant[]
+
+  @@index([deletedAt])
 }
 
 model ProductVariant {
@@ -95,7 +117,9 @@ model ProductVariant {
   sizeId           String?
   basePrice        Decimal           @db.Decimal(15, 2)
   stock            Int               @default(0)
-  sku              String?           @unique
+  sku              String?
+  deletedAt        DateTime?
+  deletedCascade   Boolean           @default(false)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   product          Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -104,7 +128,7 @@ model ProductVariant {
   customerPrices   CustomerPrice[]
   transactionItems TransactionItem[]
 
-  @@unique([productId, colorId, sizeId])
+  @@index([deletedAt])
 }
 
 model CustomerPrice {
@@ -124,17 +148,20 @@ model Transaction {
   id                String            @id @default(cuid())
   transactionNumber String            @unique
   kasirId           String
-  customerId        String
+  customerId        String?
   subtotal          Decimal           @db.Decimal(15, 2)
   discountAmount    Decimal           @default(0) @db.Decimal(15, 2)
   discountReason    String?
   totalAmount       Decimal           @db.Decimal(15, 2)
   paymentAmount     Decimal           @db.Decimal(15, 2)
   changeAmount      Decimal           @db.Decimal(15, 2)
+  deletedAt         DateTime?
   createdAt         DateTime          @default(now())
   kasir             User              @relation(fields: [kasirId], references: [id])
-  customer          Customer          @relation(fields: [customerId], references: [id])
+  customer          Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items             TransactionItem[]
+
+  @@index([deletedAt])
 }
 
 model TransactionItem {
