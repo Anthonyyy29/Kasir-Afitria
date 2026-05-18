@@ -29,12 +29,19 @@ async function main() {
   });
   for (const v of oldVariants) {
     try {
-      const txCount = await prisma.transactionItem.count({ where: { productVariantId: v.id } });
-      if (txCount > 0) {
+      let shouldSkip = false;
+      await prisma.$transaction(async (tx) => {
+        const txCount = await tx.transactionItem.count({ where: { productVariantId: v.id } });
+        if (txCount > 0) {
+          shouldSkip = true;
+          return;
+        }
+        await tx.productVariant.delete({ where: { id: v.id } });
+      });
+      if (shouldSkip) {
         skipped.push(`varian:${v.id}`);
         continue;
       }
-      await prisma.productVariant.delete({ where: { id: v.id } });
       stats.varian = (stats.varian ?? 0) + 1;
     } catch {
       skipped.push(`varian:${v.id}`);
@@ -48,17 +55,24 @@ async function main() {
   });
   for (const p of oldProducts) {
     try {
-      const variantIds = await prisma.productVariant.findMany(
-        { where: { productId: p.id }, select: { id: true } }
-      );
-      const txCount = await prisma.transactionItem.count({
-        where: { productVariantId: { in: variantIds.map((v) => v.id) } },
+      let shouldSkip = false;
+      await prisma.$transaction(async (tx) => {
+        const variantIds = await tx.productVariant.findMany(
+          { where: { productId: p.id }, select: { id: true } }
+        );
+        const txCount = await tx.transactionItem.count({
+          where: { productVariantId: { in: variantIds.map((v) => v.id) } },
+        });
+        if (txCount > 0) {
+          shouldSkip = true;
+          return;
+        }
+        await tx.product.delete({ where: { id: p.id } });
       });
-      if (txCount > 0) {
+      if (shouldSkip) {
         skipped.push(`produk:${p.id}`);
         continue;
       }
-      await prisma.product.delete({ where: { id: p.id } });
       stats.produk = (stats.produk ?? 0) + 1;
     } catch {
       skipped.push(`produk:${p.id}`);
@@ -86,12 +100,19 @@ async function main() {
   });
   for (const u of oldUsers) {
     try {
-      const txCount = await prisma.transaction.count({ where: { kasirId: u.id } });
-      if (txCount > 0) {
+      let shouldSkip = false;
+      await prisma.$transaction(async (tx) => {
+        const txCount = await tx.transaction.count({ where: { kasirId: u.id } });
+        if (txCount > 0) {
+          shouldSkip = true;
+          return;
+        }
+        await tx.user.delete({ where: { id: u.id } });
+      });
+      if (shouldSkip) {
         skipped.push(`pengguna:${u.id}`);
         continue;
       }
-      await prisma.user.delete({ where: { id: u.id } });
       stats.pengguna = (stats.pengguna ?? 0) + 1;
     } catch {
       skipped.push(`pengguna:${u.id}`);

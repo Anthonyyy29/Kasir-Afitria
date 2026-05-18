@@ -35,14 +35,16 @@ export function TrashTable({ type, onCountChange }: TrashTableProps) {
         onCountChange?.(data.length);
       })
       .finally(() => setLoading(false));
-  }, [type, onCountChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]);
 
   async function handleRestore(item: TrashItem) {
     setActionLoading(item.id);
     const res = await fetch(`/api/sampah/${type}/${item.id}/restore`, { method: "POST" });
     if (res.ok) {
-      setItems(prev => prev.filter(i => i.id !== item.id));
-      onCountChange?.(items.length - 1);
+      const newItems = items.filter(i => i.id !== item.id);
+      setItems(newItems);
+      onCountChange?.(newItems.length);
       toast({ title: `${item.label} dipulihkan` });
     } else {
       const body = await res.json().catch(() => ({}));
@@ -56,8 +58,9 @@ export function TrashTable({ type, onCountChange }: TrashTableProps) {
     setActionLoading(item.id);
     const res = await fetch(`/api/sampah/${type}/${item.id}`, { method: "DELETE" });
     if (res.ok) {
-      setItems(prev => prev.filter(i => i.id !== item.id));
-      onCountChange?.(items.length - 1);
+      const newItems = items.filter(i => i.id !== item.id);
+      setItems(newItems);
+      onCountChange?.(newItems.length);
       toast({ title: `${item.label} dihapus permanen` });
     } else {
       const body = await res.json().catch(() => ({}));
