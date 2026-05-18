@@ -51,6 +51,15 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const { id } = await params;
+
+    const txCount = await prisma.transaction.count({ where: { customerId: id } });
+    if (txCount > 0) {
+      return NextResponse.json(
+        { error: "Pelanggan memiliki transaksi dan tidak bisa dihapus" },
+        { status: 409 }
+      );
+    }
+
     await prisma.customer.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
