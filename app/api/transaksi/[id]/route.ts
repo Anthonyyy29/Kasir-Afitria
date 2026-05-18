@@ -9,8 +9,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params;
 
-    const transaction = await prisma.transaction.findUnique({
-      where: { id },
+    const transaction = await prisma.transaction.findFirst({
+      where: { id, deletedAt: null },
       include: {
         customer: true,
         kasir: { select: { name: true } },

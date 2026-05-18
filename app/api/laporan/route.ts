@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const endDate = new Date(searchParams.get("end") ?? new Date().toISOString());
 
     const transactions = await prisma.transaction.findMany({
-      where: { createdAt: { gte: startDate, lte: endDate } },
+      where: { deletedAt: null, createdAt: { gte: startDate, lte: endDate } },
       include: {
         customer: { select: { name: true } },
         kasir: { select: { name: true } },

@@ -9,11 +9,13 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const products = await prisma.product.findMany({
+      where: { deletedAt: null },
       include: {
         unit: true,
         category: true,
         subCategory: true,
         variants: {
+          where: { deletedAt: null },
           include: { color: true, size: true },
         },
       },

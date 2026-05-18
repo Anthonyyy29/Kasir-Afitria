@@ -9,6 +9,7 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const customers = await prisma.customer.findMany({
+      where: { deletedAt: null },
       orderBy: { name: "asc" },
       include: { _count: { select: { transactions: true } } },
     });

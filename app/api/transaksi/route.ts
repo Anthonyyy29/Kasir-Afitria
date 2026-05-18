@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
     }
 
     const where = {
+      deletedAt: null,
       ...(startDate && endDate
         ? { createdAt: { gte: new Date(startDate), lte: new Date(endDate) } }
         : {}),
