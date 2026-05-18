@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -30,44 +31,52 @@ export async function DELETE(
         break;
 
       case "produk": {
-        const variantIds = await prisma.productVariant.findMany({
-          where: { productId: id },
-          select: { id: true },
-        });
-        const txItemCount = await prisma.transactionItem.count({
-          where: { productVariantId: { in: variantIds.map((v) => v.id) } },
-        });
-        if (txItemCount > 0)
-          return NextResponse.json(
-            {
-              error:
-                "Produk ini memiliki " +
-                txItemCount +
-                " item transaksi dan tidak bisa dihapus permanen",
-            },
-            { status: 409 }
-          );
-        // CASCADE ke ProductVariant → CASCADE ke CustomerPrice
-        await prisma.product.delete({ where: { id } });
+        try {
+          await prisma.$transaction(async (tx) => {
+            const variantIds = await tx.productVariant.findMany({
+              where: { productId: id },
+              select: { id: true },
+            });
+            const txItemCount = await tx.transactionItem.count({
+              where: { productVariantId: { in: variantIds.map((v) => v.id) } },
+            });
+            if (txItemCount > 0)
+              throw Object.assign(new Error("FK"), { code: "FK_VIOLATION", count: txItemCount });
+            // CASCADE ke ProductVariant → CASCADE ke CustomerPrice
+            await tx.product.delete({ where: { id } });
+          });
+        } catch (err: unknown) {
+          if (err instanceof Error && (err as { code?: string }).code === "FK_VIOLATION") {
+            return NextResponse.json(
+              { error: "Produk ini memiliki riwayat transaksi dan tidak bisa dihapus permanen" },
+              { status: 409 }
+            );
+          }
+          throw err;
+        }
         break;
       }
 
       case "varian": {
-        const txCount = await prisma.transactionItem.count({
-          where: { productVariantId: id },
-        });
-        if (txCount > 0)
-          return NextResponse.json(
-            {
-              error:
-                "Varian ini memiliki " +
-                txCount +
-                " item transaksi dan tidak bisa dihapus permanen",
-            },
-            { status: 409 }
-          );
-        // CASCADE ke CustomerPrice
-        await prisma.productVariant.delete({ where: { id } });
+        try {
+          await prisma.$transaction(async (tx) => {
+            const txCount = await tx.transactionItem.count({
+              where: { productVariantId: id },
+            });
+            if (txCount > 0)
+              throw Object.assign(new Error("FK"), { code: "FK_VIOLATION" });
+            // CASCADE ke CustomerPrice
+            await tx.productVariant.delete({ where: { id } });
+          });
+        } catch (err: unknown) {
+          if (err instanceof Error && (err as { code?: string }).code === "FK_VIOLATION") {
+            return NextResponse.json(
+              { error: "Varian ini memiliki riwayat transaksi dan tidak bisa dihapus permanen" },
+              { status: 409 }
+            );
+          }
+          throw err;
+        }
         break;
       }
 
@@ -85,7 +94,7 @@ export async function DELETE(
       }
 
       case "kategori": {
-        const katProdCount = await prisma.product.count({ where: { categoryId: id } });
+        const katProdCount = await prisma.product.count({ where: { categoryId: id, deletedAt: null } });
         if (katProdCount > 0)
           return NextResponse.json(
             {
@@ -98,11 +107,12 @@ export async function DELETE(
           );
         // CASCADE ke SubCategory
         await prisma.category.delete({ where: { id } });
+        revalidateTag("kategori", {});
         break;
       }
 
       case "sub-kategori": {
-        const subkatProdCount = await prisma.product.count({ where: { subCategoryId: id } });
+        const subkatProdCount = await prisma.product.count({ where: { subCategoryId: id, deletedAt: null } });
         if (subkatProdCount > 0)
           return NextResponse.json(
             {
@@ -114,11 +124,13 @@ export async function DELETE(
             { status: 409 }
           );
         await prisma.subCategory.delete({ where: { id } });
+        revalidateTag("sub-kategori", {});
+        revalidateTag("kategori", {});
         break;
       }
 
       case "satuan": {
-        const satuanProdCount = await prisma.product.count({ where: { unitId: id } });
+        const satuanProdCount = await prisma.product.count({ where: { unitId: id, deletedAt: null } });
         if (satuanProdCount > 0)
           return NextResponse.json(
             {
@@ -130,11 +142,12 @@ export async function DELETE(
             { status: 409 }
           );
         await prisma.unit.delete({ where: { id } });
+        revalidateTag("satuan", {});
         break;
       }
 
       case "warna": {
-        const warnaProdCount = await prisma.productVariant.count({ where: { colorId: id } });
+        const warnaProdCount = await prisma.productVariant.count({ where: { colorId: id, deletedAt: null } });
         if (warnaProdCount > 0)
           return NextResponse.json(
             {
@@ -146,11 +159,12 @@ export async function DELETE(
             { status: 409 }
           );
         await prisma.color.delete({ where: { id } });
+        revalidateTag("warna", {});
         break;
       }
 
       case "ukuran": {
-        const ukuranProdCount = await prisma.productVariant.count({ where: { sizeId: id } });
+        const ukuranProdCount = await prisma.productVariant.count({ where: { sizeId: id, deletedAt: null } });
         if (ukuranProdCount > 0)
           return NextResponse.json(
             {
@@ -162,6 +176,7 @@ export async function DELETE(
             { status: 409 }
           );
         await prisma.size.delete({ where: { id } });
+        revalidateTag("ukuran", {});
         break;
       }
 
