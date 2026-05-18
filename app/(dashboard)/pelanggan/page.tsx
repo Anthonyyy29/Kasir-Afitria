@@ -111,17 +111,9 @@ export default function PelangganPage() {
   }
 
   async function handleDelete(c: Customer) {
-    if (c._count.transactions > 0) {
-      toast({
-        title: "Tidak bisa dihapus",
-        description: `${c.name} memiliki ${c._count.transactions} transaksi. Hapus transaksinya terlebih dahulu.`,
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!confirm(`Hapus pelanggan "${c.name}"?`)) return;
+    if (!confirm(`Pindahkan pelanggan "${c.name}" ke sampah?`)) return;
     const res = await fetch(`/api/pelanggan/${c.id}`, { method: "DELETE" });
-    if (res.ok) { toast({ title: "Pelanggan dihapus" }); load(); }
+    if (res.ok) { toast({ title: "Pelanggan dipindahkan ke sampah" }); load(); }
     else toast({ title: "Gagal menghapus", variant: "destructive" });
   }
 

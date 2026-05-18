@@ -29,7 +29,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const { id } = await params;
-    await prisma.productVariant.delete({ where: { id } });
+    await prisma.productVariant.update({ where: { id }, data: { deletedAt: new Date() } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);

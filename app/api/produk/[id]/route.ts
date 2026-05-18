@@ -9,13 +9,16 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params;
 
-    const product = await prisma.product.findUnique({
-      where: { id },
+    const product = await prisma.product.findFirst({
+      where: { id, deletedAt: null },
       include: {
         unit: true,
         category: true,
         subCategory: true,
-        variants: { include: { color: true, size: true, customerPrices: { include: { customer: true } } } },
+        variants: {
+          where: { deletedAt: null },
+          include: { color: true, size: true, customerPrices: { include: { customer: true } } },
+        },
       },
     });
 
@@ -102,7 +105,13 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const { id } = await params;
-    await prisma.product.delete({ where: { id } });
+    await prisma.$transaction([
+      prisma.product.update({ where: { id }, data: { deletedAt: new Date() } }),
+      prisma.productVariant.updateMany({
+        where: { productId: id, deletedAt: null },
+        data: { deletedAt: new Date(), deletedCascade: true },
+      }),
+    ]);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);

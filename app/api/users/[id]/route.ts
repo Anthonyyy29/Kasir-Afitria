@@ -23,7 +23,12 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
     if (!session || session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const { id } = await params;
     if (id === session.user.id) return NextResponse.json({ error: "Tidak bisa hapus diri sendiri" }, { status: 400 });
-    await prisma.user.delete({ where: { id } });
+    const targetUser = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+    if (targetUser?.role === "ADMIN") {
+      const adminCount = await prisma.user.count({ where: { role: "ADMIN", deletedAt: null, id: { not: id } } });
+      if (adminCount === 0) return NextResponse.json({ error: "Tidak bisa menghapus admin terakhir" }, { status: 400 });
+    }
+    await prisma.user.update({ where: { id }, data: { deletedAt: new Date() } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);

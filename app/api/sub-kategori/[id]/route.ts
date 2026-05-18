@@ -25,7 +25,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const { id } = await params;
-    await prisma.subCategory.delete({ where: { id } });
+    await prisma.subCategory.update({ where: { id }, data: { deletedAt: new Date() } });
     revalidateTag("sub-kategori", {});
     revalidateTag("kategori", {});
     return NextResponse.json({ success: true });

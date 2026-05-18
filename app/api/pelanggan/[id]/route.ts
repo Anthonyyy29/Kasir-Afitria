@@ -9,10 +9,11 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params;
 
-    const customer = await prisma.customer.findUnique({
-      where: { id },
+    const customer = await prisma.customer.findFirst({
+      where: { id, deletedAt: null },
       include: {
         customerPrices: {
+          where: { productVariant: { deletedAt: null } },
           include: { productVariant: { include: { product: true, color: true, size: true } } },
         },
       },
@@ -52,15 +53,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
     if (!session || session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const { id } = await params;
 
-    const txCount = await prisma.transaction.count({ where: { customerId: id } });
-    if (txCount > 0) {
-      return NextResponse.json(
-        { error: "Pelanggan memiliki transaksi dan tidak bisa dihapus" },
-        { status: 409 }
-      );
-    }
-
-    await prisma.customer.delete({ where: { id } });
+    await prisma.customer.update({ where: { id }, data: { deletedAt: new Date() } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);
