@@ -86,8 +86,8 @@ export function TrashTable({ type, onCountChange }: TrashTableProps) {
 
   return (
     <>
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
+      <div className="border rounded-lg overflow-hidden overflow-x-auto">
+        <Table className="min-w-[560px]">
           <TableHeader>
             <TableRow>
               <TableHead>Nama / Identifier</TableHead>

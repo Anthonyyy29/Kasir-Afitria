@@ -136,7 +136,7 @@ export default function ProdukPage() {
           <h1 className="text-2xl font-bold">Daftar Produk</h1>
           <p className="text-gray-500">{products.length} produk</p>
         </div>
-        <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" />Tambah Produk</Button>
+        <Button onClick={openCreate} className="gap-2 shrink-0"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Tambah </span>Produk</Button>
       </div>
 
       <div className="flex gap-3">
@@ -146,28 +146,87 @@ export default function ProdukPage() {
         </div>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8"></TableHead>
-                  <TableHead>Produk</TableHead>
-                  <TableHead>Kategori</TableHead>
-                  <TableHead>Satuan</TableHead>
-                  <TableHead>Varian</TableHead>
-                  <TableHead>Stok Total</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-gray-400 py-8">Tidak ada produk</TableCell></TableRow>
-                ) : (
-                  filtered.map((p) => {
+      {loading ? (
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center text-gray-400 py-12 border rounded-lg bg-white">Tidak ada produk</div>
+      ) : (
+        <>
+          {/* Mobile card list */}
+          <div className="lg:hidden space-y-2">
+            {filtered.map((p) => {
+              const isExpanded = expanded.includes(p.id);
+              const totalStock = p.variants.reduce((s, v) => s + v.stock, 0);
+              const hasLowStock = p.variants.some((v) => v.stock <= p.lowStockThreshold);
+              return (
+                <div key={p.id} className="border rounded-lg bg-white overflow-hidden">
+                  <div className="flex items-center gap-3 px-4 py-3 cursor-pointer" onClick={() => toggleExpand(p.id)}>
+                    {isExpanded ? <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" /> : <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{p.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {p.category.name}{p.subCategory ? ` › ${p.subCategory.name}` : ""} · {p.unit.name}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="secondary" className="text-[10px]">{p.variants.length}v</Badge>
+                      <span className={`text-sm font-medium ${hasLowStock ? "text-yellow-600" : "text-gray-600"}`}>{totalStock}</span>
+                      {hasLowStock && <Badge variant="warning" className="text-[10px]">Tipis</Badge>}
+                    </div>
+                  </div>
+                  {isExpanded && (
+                    <div className="px-4 pb-3 space-y-1.5 bg-gray-50 border-t">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pt-2 mb-1">Varian</p>
+                      {p.variants.map((v) => (
+                        <div key={v.id} className="flex items-center gap-2 bg-white rounded-lg border px-3 py-2 text-xs">
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            {v.color?.hex && <div className="w-3 h-3 rounded-full border shrink-0" style={{ backgroundColor: v.color.hex }} />}
+                            <span className="truncate">
+                              {[v.color?.name, v.size?.name].filter(Boolean).join(" / ") || <span className="text-gray-400 italic">Default</span>}
+                            </span>
+                            {v.sku && <span className="text-gray-400 shrink-0">· {v.sku}</span>}
+                          </div>
+                          <span className="font-medium text-blue-600 shrink-0">{formatRupiah(v.basePrice)}</span>
+                          <span className={`shrink-0 font-medium ${v.stock <= p.lowStockThreshold ? "text-yellow-600" : "text-green-600"}`}>
+                            ×{v.stock}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex border-t" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" className="flex-1 gap-1 text-xs rounded-none h-9" onClick={() => openEdit(p)}>
+                      <Pencil className="h-3.5 w-3.5" />Edit
+                    </Button>
+                    <Button variant="ghost" size="sm" className="flex-1 gap-1 text-xs rounded-none h-9 border-l" onClick={() => handleSalin(p)}>
+                      <Copy className="h-3.5 w-3.5" />Salin
+                    </Button>
+                    <Button variant="ghost" size="sm" className="flex-1 gap-1 text-xs rounded-none h-9 border-l text-red-500 hover:text-red-700" onClick={() => handleDelete(p)}>
+                      <Trash2 className="h-3.5 w-3.5" />Hapus
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <Card className="hidden lg:block">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8"></TableHead>
+                    <TableHead>Produk</TableHead>
+                    <TableHead>Kategori</TableHead>
+                    <TableHead>Satuan</TableHead>
+                    <TableHead>Varian</TableHead>
+                    <TableHead>Stok Total</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((p) => {
                     const isExpanded = expanded.includes(p.id);
                     const totalStock = p.variants.reduce((s, v) => s + v.stock, 0);
                     const hasLowStock = p.variants.some((v) => v.stock <= p.lowStockThreshold);
@@ -232,13 +291,13 @@ export default function ProdukPage() {
                         )}
                       </Fragment>
                     );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
@@ -247,12 +306,12 @@ export default function ProdukPage() {
             <DialogDescription className="sr-only">{editing ? "Edit data produk dan variannya" : "Isi data produk baru beserta variannya"}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="col-span-1 sm:col-span-2 space-y-2">
                 <Label>Nama Produk</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nama produk" />
               </div>
-              <div className="col-span-2 space-y-2">
+              <div className="col-span-1 sm:col-span-2 space-y-2">
                 <Label>Deskripsi (opsional)</Label>
                 <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Deskripsi singkat" />
               </div>
@@ -324,7 +383,7 @@ export default function ProdukPage() {
                       </Button>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-xs">Warna</Label>
                       <Select value={v.colorId || undefined} onValueChange={(val) => { const nv = [...variants]; nv[i].colorId = val; setVariants(nv); }}>
@@ -351,7 +410,7 @@ export default function ProdukPage() {
                       <Label className="text-xs">Stok Awal</Label>
                       <Input className="h-9" type="number" placeholder="0" value={v.stock} onChange={(e) => { const nv = [...variants]; nv[i].stock = e.target.value; setVariants(nv); }} />
                     </div>
-                    <div className="col-span-2 space-y-1">
+                    <div className="col-span-1 sm:col-span-2 space-y-1">
                       <Label className="text-xs">SKU (opsional)</Label>
                       <Input className="h-9" placeholder="SKU-001" value={v.sku} onChange={(e) => { const nv = [...variants]; nv[i].sku = e.target.value; setVariants(nv); }} />
                     </div>

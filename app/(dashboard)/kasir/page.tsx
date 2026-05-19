@@ -265,31 +265,35 @@ export default function KasirPage() {
       <div className="flex gap-4 flex-1 overflow-hidden">
       {/* Kiri: Produk */}
       <div className={`flex-1 flex-col gap-3 min-w-0 ${mobileTab === "keranjang" ? "hidden lg:flex" : "flex"}`}>
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input className="pl-9" placeholder="Cari produk..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input className="pl-9" placeholder="Cari produk..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <CartPanelButton
+              count={sessions.length}
+              onClick={() => setIsPanelOpen(true)}
+            />
           </div>
-          <div className="w-56">
-            <Select onValueChange={handleSelectCustomer}>
-              <SelectTrigger className={selectedCustomer ? "border-blue-400 bg-blue-50" : ""}>
-                <SelectValue placeholder="Pilih pelanggan..." />
-              </SelectTrigger>
-              <SelectContent>
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name} {c.phone ? `(${c.phone})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <Select onValueChange={handleSelectCustomer}>
+                <SelectTrigger className={selectedCustomer ? "border-blue-400 bg-blue-50" : ""}>
+                  <SelectValue placeholder="Pilih pelanggan..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name} {c.phone ? `(${c.phone})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {loadingCustomer && <Loader2 className="h-4 w-4 animate-spin text-blue-500 shrink-0" />}
+            {selectedCustomer && <Badge variant="success" className="gap-1 whitespace-nowrap shrink-0"><UserCheck className="h-3 w-3" />{selectedCustomer.name}</Badge>}
           </div>
-          <CartPanelButton
-            count={sessions.length}
-            onClick={() => setIsPanelOpen(true)}
-          />
-          {loadingCustomer && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
-          {selectedCustomer && <Badge variant="success" className="gap-1 whitespace-nowrap"><UserCheck className="h-3 w-3" />{selectedCustomer.name}</Badge>}
         </div>
 
         {!selectedCustomer && (
@@ -437,6 +441,7 @@ export default function KasirPage() {
             <DialogDescription className="sr-only">Konfirmasi total belanja dan input jumlah uang diterima</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="overflow-x-auto">
             <Table>
               <TableBody>
                 {cart.map((i) => (
@@ -451,6 +456,7 @@ export default function KasirPage() {
                 ))}
               </TableBody>
             </Table>
+          </div>
 
             <div className="bg-gray-50 rounded-lg p-3 space-y-1.5 text-sm">
               <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatRupiah(subtotal)}</span></div>

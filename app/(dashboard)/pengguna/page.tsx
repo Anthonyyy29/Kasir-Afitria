@@ -81,61 +81,92 @@ export default function PenggunaPage() {
           <h1 className="text-2xl font-bold">Kelola Pengguna</h1>
           <p className="text-gray-500">Tambah atau ubah pengguna yang bisa mengakses kasir</p>
         </div>
-        <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" />Tambah Pengguna</Button>
+        <Button onClick={openCreate} className="gap-2 shrink-0"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Tambah </span>Pengguna</Button>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className={`rounded-full p-1.5 ${u.role === "ADMIN" ? "bg-purple-100" : "bg-blue-100"}`}>
-                          {u.role === "ADMIN"
-                            ? <Shield className="h-4 w-4 text-purple-600" />
-                            : <UserCircle className="h-4 w-4 text-blue-600" />}
-                        </div>
-                        <span className="font-medium">{u.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={u.role === "ADMIN" ? "default" : "secondary"}>
-                        {u.role === "ADMIN" ? "Admin" : "Kasir"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {u.id === session?.user?.id && (
-                        <Badge variant="success">Sedang aktif</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-1 justify-end">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(u)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(u)} className="text-red-500 hover:text-red-700" disabled={u.id === session?.user?.id}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+      {loading ? (
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+      ) : (
+        <>
+          {/* Mobile card list */}
+          <div className="lg:hidden space-y-2">
+            {users.map((u) => (
+              <div key={u.id} className="border rounded-lg bg-white px-4 py-3 flex items-center gap-3">
+                <div className={`rounded-full p-1.5 shrink-0 ${u.role === "ADMIN" ? "bg-purple-100" : "bg-blue-100"}`}>
+                  {u.role === "ADMIN"
+                    ? <Shield className="h-4 w-4 text-purple-600" />
+                    : <UserCircle className="h-4 w-4 text-blue-600" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{u.name}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <Badge variant={u.role === "ADMIN" ? "default" : "secondary"} className="text-[10px]">
+                      {u.role === "ADMIN" ? "Admin" : "Kasir"}
+                    </Badge>
+                    {u.id === session?.user?.id && <Badge variant="success" className="text-[10px]">Aktif</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(u)}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(u)} className="text-red-500 hover:text-red-700" disabled={u.id === session?.user?.id}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <Card className="hidden lg:block">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {users.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className={`rounded-full p-1.5 ${u.role === "ADMIN" ? "bg-purple-100" : "bg-blue-100"}`}>
+                            {u.role === "ADMIN"
+                              ? <Shield className="h-4 w-4 text-purple-600" />
+                              : <UserCircle className="h-4 w-4 text-blue-600" />}
+                          </div>
+                          <span className="font-medium">{u.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={u.role === "ADMIN" ? "default" : "secondary"}>
+                          {u.role === "ADMIN" ? "Admin" : "Kasir"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {u.id === session?.user?.id && (
+                          <Badge variant="success">Sedang aktif</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-1 justify-end">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(u)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(u)} className="text-red-500 hover:text-red-700" disabled={u.id === session?.user?.id}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent aria-describedby={undefined}>

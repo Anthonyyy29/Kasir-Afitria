@@ -97,19 +97,19 @@ export function MasterDataPage({ title, apiUrl, extraFields = [], renderExtra }:
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
           <p className="text-gray-500">{items.length} data</p>
         </div>
-        <Button onClick={openCreate} className="gap-2">
+        <Button onClick={openCreate} className="gap-2 shrink-0">
           <Plus className="h-4 w-4" />
-          Tambah {title}
+          <span className="hidden sm:inline">Tambah </span>{title}
         </Button>
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-gray-400" />

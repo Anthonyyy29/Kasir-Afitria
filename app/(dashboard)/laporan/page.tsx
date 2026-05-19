@@ -92,27 +92,27 @@ export default function LaporanPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Laporan Penjualan</h1>
           <p className="text-gray-500">Analisis data penjualan</p>
         </div>
-        <Button onClick={exportExcel} disabled={!data} className="gap-2">
-          <Download className="h-4 w-4" />Export Excel
+        <Button onClick={exportExcel} disabled={!data} className="gap-2 shrink-0">
+          <Download className="h-4 w-4" /><span className="hidden sm:inline">Export </span>Excel
         </Button>
       </div>
 
       {/* Filter Tanggal */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-end gap-4">
+          <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Dari Tanggal</Label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-40" />
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full sm:w-40" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Sampai Tanggal</Label>
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-40" />
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full sm:w-40" />
             </div>
             <Button variant="outline" onClick={load} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Tampilkan"}
@@ -126,7 +126,7 @@ export default function LaporanPage() {
       ) : data ? (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2 flex-row items-center justify-between">
                 <CardTitle className="text-sm text-gray-600">Total Pendapatan</CardTitle>
@@ -158,7 +158,7 @@ export default function LaporanPage() {
 
           {/* Chart Pendapatan Harian */}
           {chartData.length > 0 && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
                 <CardHeader><CardTitle className="text-base">Pendapatan per Hari</CardTitle></CardHeader>
                 <CardContent>
@@ -190,7 +190,7 @@ export default function LaporanPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Top Produk */}
             <Card>
               <CardHeader className="flex-row items-center gap-2">

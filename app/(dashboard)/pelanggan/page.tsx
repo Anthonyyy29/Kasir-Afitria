@@ -266,7 +266,7 @@ export default function PelangganPage() {
           <h1 className="text-2xl font-bold">Pelanggan</h1>
           <p className="text-gray-500">{customers.length} pelanggan</p>
         </div>
-        <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" />Tambah Pelanggan</Button>
+        <Button onClick={openCreate} className="gap-2 shrink-0"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Tambah </span>Pelanggan</Button>
       </div>
 
       <div className="flex gap-3">
@@ -276,26 +276,57 @@ export default function PelangganPage() {
         </div>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Telepon</TableHead>
-                  <TableHead>Alamat</TableHead>
-                  <TableHead>Transaksi</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-gray-400 py-8">Tidak ada pelanggan</TableCell></TableRow>
-                ) : (
-                  filtered.map((c) => (
+      {loading ? (
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center text-gray-400 py-12 border rounded-lg bg-white">Tidak ada pelanggan</div>
+      ) : (
+        <>
+          {/* Mobile card list */}
+          <div className="lg:hidden space-y-2">
+            {filtered.map((c) => (
+              <div key={c.id} className="border rounded-lg bg-white overflow-hidden">
+                <div className="px-4 py-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium">{c.name}</p>
+                      {c.email && <p className="text-xs text-gray-400 truncate">{c.email}</p>}
+                      {c.phone && <p className="text-sm text-gray-500">{c.phone}</p>}
+                      {c.address && <p className="text-xs text-gray-400 mt-0.5 truncate">{c.address}</p>}
+                    </div>
+                    <Badge variant="secondary" className="shrink-0">{c._count.transactions}x</Badge>
+                  </div>
+                </div>
+                <div className="flex border-t">
+                  <Button variant="ghost" size="sm" className="flex-1 gap-1 text-xs rounded-none h-9 text-blue-600" onClick={() => openPriceDialog(c)}>
+                    <Tag className="h-3.5 w-3.5" />Harga
+                  </Button>
+                  <Button variant="ghost" size="sm" className="flex-1 gap-1 text-xs rounded-none h-9 border-l" onClick={() => openEdit(c)}>
+                    <Pencil className="h-3.5 w-3.5" />Edit
+                  </Button>
+                  <Button variant="ghost" size="sm" className="flex-1 gap-1 text-xs rounded-none h-9 border-l text-red-500 hover:text-red-700" onClick={() => handleDelete(c)}>
+                    <Trash2 className="h-3.5 w-3.5" />Hapus
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <Card className="hidden lg:block">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama</TableHead>
+                    <TableHead>Telepon</TableHead>
+                    <TableHead>Alamat</TableHead>
+                    <TableHead>Transaksi</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell>
                         <div className="font-medium">{c.name}</div>
@@ -312,13 +343,13 @@ export default function PelangganPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {/* Dialog tambah/edit pelanggan */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -355,9 +386,9 @@ export default function PelangganPage() {
 
       {/* Dialog harga khusus pelanggan */}
       <Dialog open={priceDialogOpen} onOpenChange={setPriceDialogOpen}>
-        <DialogContent className="max-w-2xl" aria-describedby={undefined}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-2xl" aria-describedby={undefined}>
           <DialogHeader>
-            <div className="flex items-start justify-between pr-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between pr-6">
               <div>
                 <DialogTitle>Harga Khusus — {selectedCustomer?.name ?? "..."}</DialogTitle>
                 <p className="text-sm text-gray-500 mt-0.5">
@@ -367,7 +398,7 @@ export default function PelangganPage() {
                 </p>
               </div>
               {selectedCustomer && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                   <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>
                     <Download className="h-3.5 w-3.5" />
                     Export
@@ -404,7 +435,7 @@ export default function PelangganPage() {
 
               {/* Tabel */}
               <div className="border rounded-lg overflow-hidden">
-                <div className="max-h-[52vh] overflow-y-auto">
+                <div className="max-h-[52vh] overflow-y-auto overflow-x-auto">
                   <Table>
                     <TableHeader className="sticky top-0 bg-white z-10">
                       <TableRow>
@@ -443,7 +474,7 @@ export default function PelangganPage() {
                                     onBlur={() => handlePriceBlur(v.id)}
                                     onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                                     className={[
-                                      "w-32 text-right text-sm h-8",
+                                      "w-24 sm:w-32 text-right text-sm h-8",
                                       hasSpecial ? "border-blue-400 bg-white font-medium text-blue-700" : "",
                                     ].join(" ")}
                                     disabled={isSaving}
