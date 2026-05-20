@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
   ShoppingCart, LayoutDashboard, Package, Users, BarChart3,
-  Settings, LogOut, Tag, Layers, Ruler, Palette, ChevronDown, ChevronRight, Bell, X, Trash2,
+  Settings, LogOut, Tag, Layers, Ruler, Palette, ChevronDown, ChevronRight, Bell, X, Trash2, History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Kasir", href: "/kasir", icon: ShoppingCart },
+  { label: "Riwayat Pesanan", href: "/riwayat", icon: History },
   {
     label: "Produk",
     icon: Package,
