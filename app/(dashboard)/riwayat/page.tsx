@@ -68,8 +68,13 @@ export default function RiwayatPage() {
   async function openDetail(trx: Transaction) {
     setDetailLoading(true);
     setDetailOpen(true);
-    const res = await fetch(`/api/transaksi/${trx.id}`);
-    if (res.ok) setSelectedTrx(await res.json());
+    try {
+      const res = await fetch(`/api/transaksi/${trx.id}`);
+      if (res.ok) setSelectedTrx(await res.json());
+      else setSelectedTrx(trx);
+    } catch {
+      setSelectedTrx(trx);
+    }
     setDetailLoading(false);
   }
 
@@ -77,7 +82,7 @@ export default function RiwayatPage() {
     if (!selectedTrx) return;
     setPrinting("nota");
     const { generateNotaPDF } = await import("@/lib/pdf");
-    const doc = generateNotaPDF(selectedTrx as Parameters<typeof generateNotaPDF>[0]);
+    const doc = generateNotaPDF(selectedTrx as unknown as Parameters<typeof generateNotaPDF>[0]);
     doc.save(`nota-${selectedTrx.transactionNumber}.pdf`);
     setPrinting(null);
   }
@@ -86,7 +91,7 @@ export default function RiwayatPage() {
     if (!selectedTrx) return;
     setPrinting("struk");
     const { generateReceiptPDF } = await import("@/lib/pdf");
-    const doc = generateReceiptPDF(selectedTrx as Parameters<typeof generateReceiptPDF>[0]);
+    const doc = generateReceiptPDF(selectedTrx as unknown as Parameters<typeof generateReceiptPDF>[0]);
     doc.autoPrint();
     window.open(doc.output("bloburl"), "_blank");
     setPrinting(null);
@@ -96,7 +101,7 @@ export default function RiwayatPage() {
     if (!selectedTrx) return;
     setPrinting("suratjalan");
     const { generateSuratJalanPDF } = await import("@/lib/pdf");
-    const doc = generateSuratJalanPDF(selectedTrx as Parameters<typeof generateSuratJalanPDF>[0]);
+    const doc = generateSuratJalanPDF(selectedTrx as unknown as Parameters<typeof generateSuratJalanPDF>[0]);
     doc.autoPrint();
     window.open(doc.output("bloburl"), "_blank");
     setPrinting(null);
