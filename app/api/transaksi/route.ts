@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get("start");
     const endDate = searchParams.get("end");
     const limit = Math.min(parseInt(searchParams.get("limit") ?? "50"), 200);
+    const search = searchParams.get("search")?.trim() ?? "";
 
     if (startDate && isNaN(new Date(startDate).getTime())) {
       return NextResponse.json({ error: "Invalid date" }, { status: 400 });
@@ -27,6 +28,14 @@ export async function GET(req: NextRequest) {
         ? { createdAt: { gte: new Date(startDate), lte: new Date(endDate) } }
         : {}),
       ...(session.user.role === "KASIR" ? { kasirId: session.user.id } : {}),
+      ...(search
+        ? {
+            OR: [
+              { transactionNumber: { contains: search, mode: "insensitive" as const } },
+              { customer: { name: { contains: search, mode: "insensitive" as const } } },
+            ],
+          }
+        : {}),
     };
 
     const transactions = await prisma.transaction.findMany({
