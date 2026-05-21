@@ -51,14 +51,15 @@ export async function generateReceiptPDF(trx: TransactionData): Promise<jsPDF> {
   y += 5;
 
   doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Pelanggan: ${trx.customer.name}`, cx, y, { align: "center" });
+  y += 4;
   doc.setFont("helvetica", "normal");
   doc.text(formatDate(trx.createdAt), cx, y, { align: "center" });
   y += 4;
   doc.text(`No: ${trx.transactionNumber}`, cx, y, { align: "center" });
   y += 4;
   doc.text(`Kasir: ${trx.kasir.name}`, cx, y, { align: "center" });
-  y += 4;
-  doc.text(`Pelanggan: ${trx.customer.name}`, cx, y, { align: "center" });
   y += 5;
 
   doc.setLineDashPattern([1, 1], 0);
@@ -144,6 +145,11 @@ export async function generateNotaPDF(trx: TransactionData): Promise<jsPDF> {
   // Info transaksi
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
+  doc.text("Pelanggan", margin, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(`: ${trx.customer.name}${trx.customer.phone ? ` (${trx.customer.phone})` : ""}`, margin + 30, y);
+  y += 6;
+  doc.setFont("helvetica", "bold");
   doc.text("No. Nota", margin, y);
   doc.setFont("helvetica", "normal");
   doc.text(`: ${trx.transactionNumber}`, margin + 30, y);
@@ -157,11 +163,6 @@ export async function generateNotaPDF(trx: TransactionData): Promise<jsPDF> {
   doc.text("Kasir", margin, y);
   doc.setFont("helvetica", "normal");
   doc.text(`: ${trx.kasir.name}`, margin + 30, y);
-  y += 6;
-  doc.setFont("helvetica", "bold");
-  doc.text("Pelanggan", margin, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(`: ${trx.customer.name}${trx.customer.phone ? ` (${trx.customer.phone})` : ""}`, margin + 30, y);
   y += 10;
 
   // Tabel item
@@ -259,6 +260,11 @@ export async function generateSuratJalanPDF(trx: TransactionData): Promise<jsPDF
   // Info surat jalan
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
+  doc.text("Kepada Yth.", margin, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(`: ${trx.customer.name}${trx.customer.phone ? ` / ${trx.customer.phone}` : ""}`, margin + 40, y);
+  y += 6;
+  doc.setFont("helvetica", "bold");
   doc.text("No. Surat Jalan", margin, y);
   doc.setFont("helvetica", "normal");
   doc.text(`: SJ-${trx.transactionNumber}`, margin + 40, y);
@@ -267,11 +273,6 @@ export async function generateSuratJalanPDF(trx: TransactionData): Promise<jsPDF
   doc.text("Tanggal", margin, y);
   doc.setFont("helvetica", "normal");
   doc.text(`: ${formatDate(trx.createdAt)}`, margin + 40, y);
-  y += 6;
-  doc.setFont("helvetica", "bold");
-  doc.text("Kepada Yth.", margin, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(`: ${trx.customer.name}${trx.customer.phone ? ` / ${trx.customer.phone}` : ""}`, margin + 40, y);
   y += 10;
 
   // Tabel rincian barang — TANPA HARGA
