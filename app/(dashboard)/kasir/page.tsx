@@ -443,6 +443,57 @@ export default function KasirPage() {
         onCreateNew={async () => { await createSession(); setIsPanelOpen(false); }}
       />
 
+      {/* Dialog Preview Keranjang */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-lg" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              Preview Pesanan
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-500">
+              {selectedCustomer ? selectedCustomer.name : "Tanpa pelanggan"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8">No</TableHead>
+                  <TableHead>Produk</TableHead>
+                  <TableHead className="text-center w-16">Qty</TableHead>
+                  <TableHead className="text-right">Harga</TableHead>
+                  <TableHead className="text-right">Subtotal</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {cart.map((item, idx) => (
+                  <TableRow key={item.variantId}>
+                    <TableCell className="py-2 text-gray-400">{idx + 1}</TableCell>
+                    <TableCell className="py-2">
+                      <p className="text-sm font-medium">{item.productName}</p>
+                      {item.variantInfo && <p className="text-xs text-gray-500">{item.variantInfo}</p>}
+                    </TableCell>
+                    <TableCell className="py-2 text-center text-sm">{item.quantity}</TableCell>
+                    <TableCell className="py-2 text-right text-sm">{formatRupiah(item.price)}</TableCell>
+                    <TableCell className="py-2 text-right text-sm font-medium">{formatRupiah(item.price * item.quantity)}</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="border-t-2 font-bold bg-gray-50">
+                  <TableCell colSpan={2} className="py-2 text-sm">Total</TableCell>
+                  <TableCell className="py-2 text-center text-sm">{totalQty}</TableCell>
+                  <TableCell />
+                  <TableCell className="py-2 text-right text-sm text-blue-600">{formatRupiah(total)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>Tutup</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Dialog Checkout */}
       <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
         <DialogContent aria-describedby={undefined}>
