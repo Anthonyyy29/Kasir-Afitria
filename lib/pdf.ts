@@ -25,17 +25,30 @@ interface TransactionData {
   changeAmount: string | number;
 }
 
+async function loadLogoBase64(): Promise<string> {
+  const res = await fetch("/logo.png");
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 // Struk thermal 80mm — untuk Cetak Struk
-export function generateReceiptPDF(trx: TransactionData): jsPDF {
+export async function generateReceiptPDF(trx: TransactionData): Promise<jsPDF> {
+  const logo = await loadLogoBase64();
   const doc = new jsPDF({ unit: "mm", format: [80, 200] });
 
-  let y = 8;
   const cx = 40;
+  // Logo centered, ratio 2.5:1
+  doc.addImage(logo, "PNG", 17, 4, 46, 18);
+  let y = 24;
 
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("AFITRIA SOCK", cx, y, { align: "center" });
-  y += 6;
+  doc.setDrawColor(0, 0, 0);
+  doc.line(5, y, 75, y);
+  y += 5;
 
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
@@ -78,13 +91,13 @@ export function generateReceiptPDF(trx: TransactionData): jsPDF {
   y += 4;
 
   const rows = [
-    ["Subtotal", formatRupiah(trx.subtotal)],
     ...(Number(trx.discountAmount) > 0
-      ? [[`Diskon${trx.discountReason ? ` (${trx.discountReason})` : ""}`, `-${formatRupiah(trx.discountAmount)}`]]
+      ? [
+          ["Subtotal", formatRupiah(trx.subtotal)],
+          [`Diskon${trx.discountReason ? ` (${trx.discountReason})` : ""}`, `-${formatRupiah(trx.discountAmount)}`],
+        ]
       : []),
     ["TOTAL", formatRupiah(trx.totalAmount)],
-    ["Bayar", formatRupiah(trx.paymentAmount)],
-    ["Kembalian", formatRupiah(trx.changeAmount)],
   ];
 
   doc.setFontSize(8);
@@ -106,51 +119,49 @@ export function generateReceiptPDF(trx: TransactionData): jsPDF {
   return doc;
 }
 
-// Nota A4 dengan harga lengkap — untuk Download Nota
-export function generateNotaPDF(trx: TransactionData): jsPDF {
+// Nota A4 dengan harga lengkap — untuk Cetak Nota
+export async function generateNotaPDF(trx: TransactionData): Promise<jsPDF> {
+  const logo = await loadLogoBase64();
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const W = 210;
   const margin = 15;
-  let y = 15;
+  let y = 8;
 
-  // Header
+  // Header: logo kiri, judul tengah
+  doc.addImage(logo, "PNG", margin, y, 50, 20);
+
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("AFITRIA SOCK", margin, y);
-
-  doc.setFontSize(20);
   doc.setTextColor(60, 90, 180);
-  doc.text("NOTA PENJUALAN", W - margin, y, { align: "right" });
+  doc.text("NOTA PENJUALAN", W / 2, y + 13, { align: "center" });
   doc.setTextColor(0, 0, 0);
 
-  y += 6;
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
+  y = 33;
   doc.setDrawColor(200, 200, 200);
   doc.line(margin, y, W - margin, y);
   y += 7;
 
-  // Info transaksi — kiri
-  doc.setFontSize(9);
+  // Info transaksi
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text("No. Nota", margin, y);
   doc.setFont("helvetica", "normal");
-  doc.text(`: ${trx.transactionNumber}`, margin + 28, y);
-  y += 5;
+  doc.text(`: ${trx.transactionNumber}`, margin + 30, y);
+  y += 6;
   doc.setFont("helvetica", "bold");
   doc.text("Tanggal", margin, y);
   doc.setFont("helvetica", "normal");
-  doc.text(`: ${formatDate(trx.createdAt)}`, margin + 28, y);
-  y += 5;
+  doc.text(`: ${formatDate(trx.createdAt)}`, margin + 30, y);
+  y += 6;
   doc.setFont("helvetica", "bold");
   doc.text("Kasir", margin, y);
   doc.setFont("helvetica", "normal");
-  doc.text(`: ${trx.kasir.name}`, margin + 28, y);
-  y += 5;
+  doc.text(`: ${trx.kasir.name}`, margin + 30, y);
+  y += 6;
   doc.setFont("helvetica", "bold");
   doc.text("Pelanggan", margin, y);
   doc.setFont("helvetica", "normal");
-  doc.text(`: ${trx.customer.name}${trx.customer.phone ? ` (${trx.customer.phone})` : ""}`, margin + 28, y);
+  doc.text(`: ${trx.customer.name}${trx.customer.phone ? ` (${trx.customer.phone})` : ""}`, margin + 30, y);
   y += 10;
 
   // Tabel item
@@ -165,12 +176,12 @@ export function generateNotaPDF(trx: TransactionData): jsPDF {
       formatRupiah(item.priceAtSale),
       formatRupiah(item.subtotal),
     ]),
-    styles: { fontSize: 9, cellPadding: 2.5 },
+    styles: { fontSize: 10, cellPadding: 3 },
     headStyles: { fillColor: [60, 90, 180], textColor: 255, fontStyle: "bold" },
     columnStyles: {
-      0: { cellWidth: 10, halign: "center" },
+      0: { cellWidth: 14, halign: "center" },
       1: { cellWidth: 55 },
-      2: { cellWidth: 40 },
+      2: { cellWidth: 36 },
       3: { cellWidth: 15, halign: "center" },
       4: { cellWidth: 30, halign: "right" },
       5: { cellWidth: 30, halign: "right" },
@@ -190,77 +201,77 @@ export function generateNotaPDF(trx: TransactionData): jsPDF {
   y += 5;
 
   const summaryRows: [string, string, boolean][] = [
-    ["Subtotal", formatRupiah(trx.subtotal), false],
     ...(Number(trx.discountAmount) > 0
-      ? [[`Diskon${trx.discountReason ? ` (${trx.discountReason})` : ""}`, `-${formatRupiah(trx.discountAmount)}`, false] as [string, string, boolean]]
+      ? [
+          ["Subtotal", formatRupiah(trx.subtotal), false] as [string, string, boolean],
+          [`Diskon${trx.discountReason ? ` (${trx.discountReason})` : ""}`, `-${formatRupiah(trx.discountAmount)}`, false] as [string, string, boolean],
+        ]
       : []),
     ["TOTAL", formatRupiah(trx.totalAmount), true],
-    ["Uang Diterima", formatRupiah(trx.paymentAmount), false],
-    ["Kembalian", formatRupiah(trx.changeAmount), false],
   ];
 
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   for (const [label, value, bold] of summaryRows) {
     doc.setFont("helvetica", bold ? "bold" : "normal");
     if (bold) {
-      doc.setFontSize(11);
+      doc.setFontSize(12);
       doc.setTextColor(60, 90, 180);
     }
     doc.text(label, colLabel, y);
     doc.text(value, colValue, y, { align: "right" });
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(9);
-    y += bold ? 7 : 5;
+    doc.setFontSize(10);
+    y += bold ? 7 : 5.5;
   }
 
   // Footer
   y += 8;
   doc.setFont("helvetica", "italic");
-  doc.setFontSize(8);
+  doc.setFontSize(9);
   doc.setTextColor(120, 120, 120);
-  doc.text("Terima kasih atas kepercayaan Anda!", W / 2, y, { align: "center" });
+  doc.text("Terima kasih atas kepercayaannya", W / 2, y, { align: "center" });
 
   return doc;
 }
 
 // Surat Jalan A4 tanpa harga — untuk Cetak Surat Jalan
-export function generateSuratJalanPDF(trx: TransactionData): jsPDF {
+export async function generateSuratJalanPDF(trx: TransactionData): Promise<jsPDF> {
+  const logo = await loadLogoBase64();
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const W = 210;
   const margin = 15;
-  let y = 15;
+  let y = 8;
 
-  // Header
+  // Header: logo kiri, judul tengah
+  doc.addImage(logo, "PNG", margin, y, 50, 20);
+
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("AFITRIA SOCK", margin, y);
-
-  doc.setFontSize(20);
   doc.setTextColor(40, 120, 60);
-  doc.text("SURAT JALAN", W - margin, y, { align: "right" });
+  doc.text("SURAT JALAN", W / 2, y + 13, { align: "center" });
   doc.setTextColor(0, 0, 0);
 
-  y += 6;
+  y = 33;
   doc.setDrawColor(200, 200, 200);
   doc.line(margin, y, W - margin, y);
   y += 7;
 
   // Info surat jalan
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text("No. Surat Jalan", margin, y);
   doc.setFont("helvetica", "normal");
-  doc.text(`: SJ-${trx.transactionNumber}`, margin + 38, y);
-  y += 5;
+  doc.text(`: SJ-${trx.transactionNumber}`, margin + 40, y);
+  y += 6;
   doc.setFont("helvetica", "bold");
   doc.text("Tanggal", margin, y);
   doc.setFont("helvetica", "normal");
-  doc.text(`: ${formatDate(trx.createdAt)}`, margin + 38, y);
-  y += 5;
+  doc.text(`: ${formatDate(trx.createdAt)}`, margin + 40, y);
+  y += 6;
   doc.setFont("helvetica", "bold");
   doc.text("Kepada Yth.", margin, y);
   doc.setFont("helvetica", "normal");
-  doc.text(`: ${trx.customer.name}${trx.customer.phone ? ` / ${trx.customer.phone}` : ""}`, margin + 38, y);
+  doc.text(`: ${trx.customer.name}${trx.customer.phone ? ` / ${trx.customer.phone}` : ""}`, margin + 40, y);
   y += 10;
 
   // Tabel rincian barang — TANPA HARGA
@@ -302,7 +313,7 @@ export function generateSuratJalanPDF(trx: TransactionData): jsPDF {
   const col1 = margin + 20;
   const col2 = W / 2 + 20;
 
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text("Hormat kami,", col1, y, { align: "center" });
   doc.text("Penerima,", col2, y, { align: "center" });
