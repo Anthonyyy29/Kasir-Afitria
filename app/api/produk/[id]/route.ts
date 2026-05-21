@@ -43,7 +43,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const product = await prisma.$transaction(async (tx) => {
       const updated = await tx.product.update({
         where: { id },
-        data: { name, description, unitId, categoryId, subCategoryId: subCategoryId || null, lowStockThreshold },
+        data: { name: name?.trim(), description, unitId, categoryId, subCategoryId: subCategoryId || null, lowStockThreshold },
       });
 
       if (Array.isArray(variants)) {

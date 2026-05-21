@@ -70,8 +70,8 @@ export default function ProdukPage() {
       const sa = a.variants.reduce((s, v) => s + v.stock, 0);
       const sb = b.variants.reduce((s, v) => s + v.stock, 0);
       switch (sortKey) {
-        case "az": return a.name.localeCompare(b.name);
-        case "za": return b.name.localeCompare(a.name);
+        case "az": return a.name.trim().localeCompare(b.name.trim());
+        case "za": return b.name.trim().localeCompare(a.name.trim());
         case "stock-desc": return sb - sa;
         case "stock-asc": return sa - sb;
         case "variants-desc": return b.variants.length - a.variants.length;
