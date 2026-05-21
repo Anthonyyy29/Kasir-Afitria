@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, Eye, Download, Printer, FileText } from "lucide-react";
 import { formatRupiah, formatDate } from "@/lib/utils";
@@ -49,6 +50,7 @@ export default function RiwayatPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [printing, setPrinting] = useState<"nota" | "struk" | "suratjalan" | null>(null);
+  const [sortKey, setSortKey] = useState("newest");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,6 +110,15 @@ export default function RiwayatPage() {
     setPrinting(null);
   }
 
+  const displayed = [...transactions].sort((a, b) => {
+    switch (sortKey) {
+      case "oldest": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      case "total-desc": return Number(b.totalAmount) - Number(a.totalAmount);
+      case "total-asc": return Number(a.totalAmount) - Number(b.totalAmount);
+      default: return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+  });
+
   return (
     <div className="space-y-4 p-4 lg:p-6">
       <div className="flex items-center justify-between">
@@ -143,6 +154,17 @@ export default function RiwayatPage() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Cari
             </Button>
+            <Select value={sortKey} onValueChange={setSortKey}>
+              <SelectTrigger className="w-48 shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Terbaru</SelectItem>
+                <SelectItem value="oldest">Terlama</SelectItem>
+                <SelectItem value="total-desc">Total Terbesar</SelectItem>
+                <SelectItem value="total-asc">Total Terkecil</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -151,13 +173,13 @@ export default function RiwayatPage() {
         <div className="flex justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
         </div>
-      ) : transactions.length === 0 ? (
+      ) : displayed.length === 0 ? (
         <div className="text-center py-16 text-gray-400">Tidak ada transaksi ditemukan</div>
       ) : (
         <>
           {/* Mobile card view */}
           <div className="lg:hidden space-y-2">
-            {transactions.map((t) => (
+            {displayed.map((t) => (
               <div key={t.id} className="border rounded-lg bg-white overflow-hidden">
                 <div className="px-4 py-3">
                   <div className="flex items-start justify-between gap-2">
@@ -204,7 +226,7 @@ export default function RiwayatPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {transactions.map((t) => (
+                    {displayed.map((t) => (
                       <TableRow key={t.id}>
                         <TableCell className="font-mono text-sm">{t.transactionNumber}</TableCell>
                         <TableCell>{t.customer?.name ?? <span className="text-gray-400">Umum</span>}</TableCell>
