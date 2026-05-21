@@ -15,7 +15,7 @@ import { formatRupiah } from "@/lib/utils";
 import { useCartSession, type CartItem } from "@/hooks/use-cart-session";
 import { CartPanel, CartPanelButton } from "@/components/kasir/cart-panel";
 
-interface Variant { id: string; colorId: string | null; sizeId: string | null; basePrice: string; stock: number; color: { name: string; hex: string | null } | null; size: { name: string } | null; }
+interface Variant { id: string; colorId: string | null; sizeId: string | null; basePrice: string; color: { name: string; hex: string | null } | null; size: { name: string } | null; }
 interface Product { id: string; name: string; unit: { name: string }; variants: Variant[]; }
 interface Customer { id: string; name: string; phone: string | null; customerPrices: { productVariantId: string; price: string }[]; }
 
@@ -130,7 +130,6 @@ export default function KasirPage() {
         price,
         basePrice: parseFloat(variant.basePrice),
         quantity: 1,
-        stock: variant.stock,
         unit: product.unit.name,
       }]);
     }

@@ -7,10 +7,9 @@ import { cn } from "@/lib/utils";
 
 interface DashboardShellProps {
   children: React.ReactNode;
-  lowStockCount: number;
 }
 
-export function DashboardShell({ children, lowStockCount }: DashboardShellProps) {
+export function DashboardShell({ children }: DashboardShellProps) {
   const [open, setOpen] = useState(false);
 
   // Default open on desktop, closed on mobile
@@ -28,7 +27,7 @@ export function DashboardShell({ children, lowStockCount }: DashboardShellProps)
         />
       )}
 
-      <Sidebar isOpen={open} onClose={() => setOpen(false)} lowStockCount={lowStockCount} />
+      <Sidebar isOpen={open} onClose={() => setOpen(false)} />
 
       {/* Top header */}
       <header

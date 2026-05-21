@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
   ShoppingCart, LayoutDashboard, Package, Users, BarChart3,
-  Settings, LogOut, Tag, Layers, Ruler, Palette, ChevronDown, ChevronRight, Bell, X, Trash2, History,
+  Settings, LogOut, Tag, Layers, Ruler, Palette, ChevronDown, ChevronRight, X, Trash2, History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -44,12 +44,11 @@ const navItems: NavItem[] = [
 ];
 
 interface SidebarProps {
-  lowStockCount?: number;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function Sidebar({ lowStockCount = 0, isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
@@ -89,17 +88,6 @@ export function Sidebar({ lowStockCount = 0, isOpen, onClose }: SidebarProps) {
           <X className="h-4 w-4" />
         </button>
       </div>
-
-      {/* Low stock notification */}
-      {lowStockCount > 0 && isAdmin && (
-        <div className="mx-4 mt-3 flex items-center gap-2 bg-yellow-900/50 border border-yellow-700 rounded-lg px-3 py-2 text-yellow-300 text-xs">
-          <Bell className="h-3.5 w-3.5 shrink-0" />
-          <span>{lowStockCount} produk stok menipis</span>
-          <Badge variant="warning" className="ml-auto text-[10px] px-1.5 py-0">
-            {lowStockCount}
-          </Badge>
-        </div>
-      )}
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">

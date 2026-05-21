@@ -13,9 +13,9 @@ import { Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronRight, PackageSearch
 import { useToast } from "@/hooks/use-toast";
 import { formatRupiah } from "@/lib/utils";
 
-interface Variant { id: string; colorId: string | null; sizeId: string | null; basePrice: string; stock: number; sku: string | null; color: { name: string; hex: string | null } | null; size: { name: string } | null; }
-interface Product { id: string; name: string; description: string | null; unitId: string; categoryId: string; subCategoryId: string | null; lowStockThreshold: number; unit: { name: string }; category: { name: string }; subCategory: { name: string } | null; variants: Variant[]; }
-interface VariantForm { colorId: string; sizeId: string; basePrice: string; stock: string; sku: string; }
+interface Variant { id: string; colorId: string | null; sizeId: string | null; basePrice: string; sku: string | null; color: { name: string; hex: string | null } | null; size: { name: string } | null; }
+interface Product { id: string; name: string; description: string | null; unitId: string; categoryId: string; subCategoryId: string | null; unit: { name: string }; category: { name: string }; subCategory: { name: string } | null; variants: Variant[]; }
+interface VariantForm { colorId: string; sizeId: string; basePrice: string; sku: string; }
 
 export default function ProdukPage() {
   const { toast } = useToast();
@@ -35,8 +35,8 @@ export default function ProdukPage() {
   const [colors, setColors] = useState<{ id: string; name: string; hex: string | null }[]>([]);
   const [sizes, setSizes] = useState<{ id: string; name: string }[]>([]);
 
-  const [form, setForm] = useState({ name: "", description: "", unitId: "", categoryId: "", subCategoryId: "", lowStockThreshold: "5" });
-  const [variants, setVariants] = useState<VariantForm[]>([{ colorId: "", sizeId: "", basePrice: "", stock: "", sku: "" }]);
+  const [form, setForm] = useState({ name: "", description: "", unitId: "", categoryId: "", subCategoryId: "" });
+  const [variants, setVariants] = useState<VariantForm[]>([{ colorId: "", sizeId: "", basePrice: "", sku: "" }]);
   const lastVariantRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -67,13 +67,9 @@ export default function ProdukPage() {
     );
     if (categoryFilter !== "all") arr = arr.filter((p) => p.categoryId === categoryFilter);
     return [...arr].sort((a, b) => {
-      const sa = a.variants.reduce((s, v) => s + v.stock, 0);
-      const sb = b.variants.reduce((s, v) => s + v.stock, 0);
       switch (sortKey) {
         case "az": return a.name.trim().localeCompare(b.name.trim());
         case "za": return b.name.trim().localeCompare(a.name.trim());
-        case "stock-desc": return sb - sa;
-        case "stock-asc": return sa - sb;
         case "variants-desc": return b.variants.length - a.variants.length;
         case "variants-asc": return a.variants.length - b.variants.length;
         default: return 0;
@@ -83,15 +79,15 @@ export default function ProdukPage() {
 
   function openCreate() {
     setEditing(null);
-    setForm({ name: "", description: "", unitId: "", categoryId: "", subCategoryId: "", lowStockThreshold: "5" });
-    setVariants([{ colorId: "", sizeId: "", basePrice: "", stock: "", sku: "" }]);
+    setForm({ name: "", description: "", unitId: "", categoryId: "", subCategoryId: "" });
+    setVariants([{ colorId: "", sizeId: "", basePrice: "", sku: "" }]);
     setDialogOpen(true);
   }
 
   function openEdit(p: Product) {
     setEditing(p);
-    setForm({ name: p.name, description: p.description ?? "", unitId: p.unitId, categoryId: p.categoryId, subCategoryId: p.subCategoryId ?? "", lowStockThreshold: String(p.lowStockThreshold) });
-    setVariants(p.variants.map((v) => ({ colorId: v.colorId ?? "", sizeId: v.sizeId ?? "", basePrice: v.basePrice, stock: String(v.stock), sku: v.sku ?? "" })));
+    setForm({ name: p.name, description: p.description ?? "", unitId: p.unitId, categoryId: p.categoryId, subCategoryId: p.subCategoryId ?? "" });
+    setVariants(p.variants.map((v) => ({ colorId: v.colorId ?? "", sizeId: v.sizeId ?? "", basePrice: v.basePrice, sku: v.sku ?? "" })));
     setDialogOpen(true);
   }
 
@@ -101,12 +97,10 @@ export default function ProdukPage() {
       const body = {
         ...form,
         subCategoryId: form.subCategoryId || null,
-        lowStockThreshold: parseInt(form.lowStockThreshold) || 5,
         variants: variants.map((v) => ({
           colorId: v.colorId || null,
           sizeId: v.sizeId || null,
           basePrice: parseFloat(v.basePrice) || 0,
-          stock: parseInt(v.stock) || 0,
           sku: v.sku || null,
         })),
       };
@@ -181,8 +175,6 @@ export default function ProdukPage() {
           <SelectContent>
             <SelectItem value="az">Nama A-Z</SelectItem>
             <SelectItem value="za">Nama Z-A</SelectItem>
-            <SelectItem value="stock-desc">Stok Terbanyak</SelectItem>
-            <SelectItem value="stock-asc">Stok Tersedikit</SelectItem>
             <SelectItem value="variants-desc">Varian Terbanyak</SelectItem>
             <SelectItem value="variants-asc">Varian Tersedikit</SelectItem>
           </SelectContent>
@@ -199,8 +191,6 @@ export default function ProdukPage() {
           <div className="lg:hidden space-y-2">
             {filtered.map((p) => {
               const isExpanded = expanded.includes(p.id);
-              const totalStock = p.variants.reduce((s, v) => s + v.stock, 0);
-              const hasLowStock = p.variants.some((v) => v.stock <= p.lowStockThreshold);
               return (
                 <div key={p.id} className="border rounded-lg bg-white overflow-hidden">
                   <div className="flex items-center gap-3 px-4 py-3 cursor-pointer" onClick={() => toggleExpand(p.id)}>
@@ -213,8 +203,6 @@ export default function ProdukPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant="secondary" className="text-[10px]">{p.variants.length}v</Badge>
-                      <span className={`text-sm font-medium ${hasLowStock ? "text-yellow-600" : "text-gray-600"}`}>{totalStock}</span>
-                      {hasLowStock && <Badge variant="warning" className="text-[10px]">Tipis</Badge>}
                     </div>
                   </div>
                   {isExpanded && (
@@ -230,9 +218,6 @@ export default function ProdukPage() {
                             {v.sku && <span className="text-gray-400 shrink-0">· {v.sku}</span>}
                           </div>
                           <span className="font-medium text-blue-600 shrink-0">{formatRupiah(v.basePrice)}</span>
-                          <span className={`shrink-0 font-medium ${v.stock <= p.lowStockThreshold ? "text-yellow-600" : "text-green-600"}`}>
-                            ×{v.stock}
-                          </span>
                         </div>
                       ))}
                     </div>
@@ -264,15 +249,12 @@ export default function ProdukPage() {
                     <TableHead>Kategori</TableHead>
                     <TableHead>Satuan</TableHead>
                     <TableHead>Varian</TableHead>
-                    <TableHead>Stok Total</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map((p) => {
                     const isExpanded = expanded.includes(p.id);
-                    const totalStock = p.variants.reduce((s, v) => s + v.stock, 0);
-                    const hasLowStock = p.variants.some((v) => v.stock <= p.lowStockThreshold);
                     return (
                       <Fragment key={p.id}>
                         <TableRow className="cursor-pointer" onClick={() => toggleExpand(p.id)}>
@@ -289,10 +271,6 @@ export default function ProdukPage() {
                           </TableCell>
                           <TableCell className="text-sm">{p.unit.name}</TableCell>
                           <TableCell><Badge variant="secondary">{p.variants.length} varian</Badge></TableCell>
-                          <TableCell>
-                            <span className={hasLowStock ? "text-yellow-600 font-medium" : ""}>{totalStock}</span>
-                            {hasLowStock && <Badge variant="warning" className="ml-2 text-[10px]">Stok Tipis</Badge>}
-                          </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex gap-1 justify-end">
                               <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
@@ -303,7 +281,7 @@ export default function ProdukPage() {
                         </TableRow>
                         {isExpanded && (
                           <TableRow>
-                            <TableCell colSpan={7} className="bg-gray-50 p-0">
+                            <TableCell colSpan={6} className="bg-gray-50 p-0">
                               <div className="px-8 py-3">
                                 <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Varian Produk</p>
                                 <div className="grid gap-2">
@@ -322,9 +300,6 @@ export default function ProdukPage() {
                                       </div>
                                       <div className="text-gray-500">SKU: {v.sku || "-"}</div>
                                       <div className="font-medium text-blue-600">{formatRupiah(v.basePrice)}</div>
-                                      <div className={`ml-auto font-medium ${v.stock <= p.lowStockThreshold ? "text-yellow-600" : "text-green-600"}`}>
-                                        Stok: {v.stock}
-                                      </div>
                                     </div>
                                   ))}
                                 </div>
@@ -366,10 +341,6 @@ export default function ProdukPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Batas Stok Minimum</Label>
-                <Input type="number" value={form.lowStockThreshold} onChange={(e) => setForm({ ...form, lowStockThreshold: e.target.value })} />
-              </div>
-              <div className="space-y-2">
                 <Label>Kategori (Jenis)</Label>
                 <Select value={form.categoryId} onValueChange={(v) => setForm({ ...form, categoryId: v, subCategoryId: "" })}>
                   <SelectTrigger><SelectValue placeholder="Pilih kategori" /></SelectTrigger>
@@ -391,7 +362,7 @@ export default function ProdukPage() {
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-semibold">Varian Produk</Label>
                 <Button type="button" variant="outline" size="sm" onClick={() => {
-                  setVariants([...variants, { colorId: "", sizeId: "", basePrice: "", stock: "", sku: "" }]);
+                  setVariants([...variants, { colorId: "", sizeId: "", basePrice: "", sku: "" }]);
                   setTimeout(() => lastVariantRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
                 }}>
                   <Plus className="h-3.5 w-3.5 mr-1" />Tambah Varian
@@ -402,17 +373,11 @@ export default function ProdukPage() {
                   <Label className="text-xs text-blue-700">Terapkan Harga ke Semua (Rp)</Label>
                   <Input className="h-8 text-sm" type="number" placeholder="Kosongkan jika tidak diubah" id="bulk-price" />
                 </div>
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs text-blue-700">Terapkan Stok ke Semua</Label>
-                  <Input className="h-8 text-sm" type="number" placeholder="Kosongkan jika tidak diubah" id="bulk-stock" />
-                </div>
                 <Button type="button" size="sm" className="h-8 shrink-0" variant="secondary" onClick={() => {
                   const price = (document.getElementById("bulk-price") as HTMLInputElement).value;
-                  const stock = (document.getElementById("bulk-stock") as HTMLInputElement).value;
                   setVariants(variants.map((v) => ({
                     ...v,
                     ...(price !== "" ? { basePrice: price } : {}),
-                    ...(stock !== "" ? { stock } : {}),
                   })));
                 }}>Terapkan</Button>
               </div>
@@ -448,10 +413,6 @@ export default function ProdukPage() {
                     <div className="space-y-1">
                       <Label className="text-xs">Harga Dasar (Rp)</Label>
                       <Input className="h-9" type="number" placeholder="0" value={v.basePrice} onChange={(e) => { const nv = [...variants]; nv[i].basePrice = e.target.value; setVariants(nv); }} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Stok Awal</Label>
-                      <Input className="h-9" type="number" placeholder="0" value={v.stock} onChange={(e) => { const nv = [...variants]; nv[i].stock = e.target.value; setVariants(nv); }} />
                     </div>
                     <div className="col-span-1 sm:col-span-2 space-y-1">
                       <Label className="text-xs">SKU (opsional)</Label>

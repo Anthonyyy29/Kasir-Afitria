@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { name, description, unitId, categoryId, subCategoryId, lowStockThreshold, variants } = body;
+  const { name, description, unitId, categoryId, subCategoryId, variants } = body;
 
   try {
     const product = await prisma.product.create({
@@ -46,13 +46,11 @@ export async function POST(req: NextRequest) {
         unitId,
         categoryId,
         subCategoryId: subCategoryId || null,
-        lowStockThreshold: lowStockThreshold ?? 5,
         variants: {
-          create: variants?.map((v: { colorId?: string; sizeId?: string; basePrice: number; stock: number; sku?: string }) => ({
+          create: variants?.map((v: { colorId?: string; sizeId?: string; basePrice: number; sku?: string }) => ({
             colorId: v.colorId || null,
             sizeId: v.sizeId || null,
             basePrice: v.basePrice,
-            stock: v.stock,
             sku: v.sku || null,
           })) ?? [],
         },

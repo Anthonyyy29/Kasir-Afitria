@@ -10,7 +10,6 @@ export interface CartItem {
   price: number;
   basePrice: number;
   quantity: number;
-  stock: number;
   unit: string;
 }
 

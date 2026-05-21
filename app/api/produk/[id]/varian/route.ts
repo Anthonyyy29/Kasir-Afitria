@@ -9,10 +9,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!session || session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const { id } = await params;
     const body = await req.json();
-    const { colorId, sizeId, basePrice, stock, sku } = body;
+    const { colorId, sizeId, basePrice, sku } = body;
 
     const variant = await prisma.productVariant.create({
-      data: { productId: id, colorId: colorId || null, sizeId: sizeId || null, basePrice, stock, sku: sku || null },
+      data: { productId: id, colorId: colorId || null, sizeId: sizeId || null, basePrice, sku: sku || null },
       include: { color: true, size: true },
     });
 

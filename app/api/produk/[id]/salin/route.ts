@@ -22,13 +22,11 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
         unitId: original.unitId,
         categoryId: original.categoryId,
         subCategoryId: original.subCategoryId,
-        lowStockThreshold: original.lowStockThreshold,
         variants: {
           create: original.variants.map((v) => ({
             colorId: v.colorId,
             sizeId: v.sizeId,
             basePrice: v.basePrice,
-            stock: 0,
             sku: v.sku ? `${v.sku}-COPY` : null,
           })),
         },

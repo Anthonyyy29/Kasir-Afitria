@@ -35,15 +35,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session || session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
   const body = await req.json();
-  const { name, description, unitId, categoryId, subCategoryId, lowStockThreshold, variants } = body;
+  const { name, description, unitId, categoryId, subCategoryId, variants } = body;
 
-  type VariantInput = { colorId?: string; sizeId?: string; basePrice: number; stock: number; sku?: string };
+  type VariantInput = { colorId?: string; sizeId?: string; basePrice: number; sku?: string };
 
   try {
     const product = await prisma.$transaction(async (tx) => {
       const updated = await tx.product.update({
         where: { id },
-        data: { name: name?.trim(), description, unitId, categoryId, subCategoryId: subCategoryId || null, lowStockThreshold },
+        data: { name: name?.trim(), description, unitId, categoryId, subCategoryId: subCategoryId || null },
       });
 
       if (Array.isArray(variants)) {
@@ -70,7 +70,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           if (existing) {
             await tx.productVariant.update({
               where: { id: existing.id },
-              data: { basePrice: v.basePrice, stock: v.stock ?? 0, sku: v.sku || null },
+              data: { basePrice: v.basePrice, sku: v.sku || null },
             });
           } else {
             await tx.productVariant.create({
@@ -79,7 +79,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
                 colorId: v.colorId || null,
                 sizeId: v.sizeId || null,
                 basePrice: v.basePrice,
-                stock: v.stock ?? 0,
                 sku: v.sku || null,
               },
             });
