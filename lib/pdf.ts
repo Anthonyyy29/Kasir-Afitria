@@ -15,7 +15,7 @@ interface TransactionData {
   transactionNumber: string;
   createdAt: string;
   kasir: { name: string };
-  customer: { name: string; phone?: string | null };
+  customer: { name: string; phone?: string | null; address?: string | null };
   items: TransactionItem[];
   subtotal: string | number;
   discountAmount: string | number;
@@ -142,12 +142,21 @@ export async function generateNotaPDF(trx: TransactionData): Promise<jsPDF> {
   doc.line(margin, y, W - margin, y);
   y += 7;
 
-  // Info transaksi
+  // Info transaksi — kiri: detail nota, kanan: alamat
+  const rightCol = W / 2 + 10;
+  const rightVal = rightCol + 25;
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text("Pelanggan", margin, y);
   doc.setFont("helvetica", "normal");
   doc.text(`: ${trx.customer.name}${trx.customer.phone ? ` (${trx.customer.phone})` : ""}`, margin + 30, y);
+  if (trx.customer.address) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Alamat", rightCol, y);
+    doc.setFont("helvetica", "normal");
+    const addressLines = doc.splitTextToSize(`: ${trx.customer.address}`, W - margin - rightVal);
+    doc.text(addressLines, rightVal, y);
+  }
   y += 6;
   doc.setFont("helvetica", "bold");
   doc.text("No. Nota", margin, y);
@@ -257,12 +266,21 @@ export async function generateSuratJalanPDF(trx: TransactionData): Promise<jsPDF
   doc.line(margin, y, W - margin, y);
   y += 7;
 
-  // Info surat jalan
+  // Info surat jalan — kiri: detail, kanan: alamat
+  const rightColSJ = W / 2 + 10;
+  const rightValSJ = rightColSJ + 25;
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text("Kepada Yth.", margin, y);
   doc.setFont("helvetica", "normal");
   doc.text(`: ${trx.customer.name}${trx.customer.phone ? ` / ${trx.customer.phone}` : ""}`, margin + 40, y);
+  if (trx.customer.address) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Alamat", rightColSJ, y);
+    doc.setFont("helvetica", "normal");
+    const addressLines = doc.splitTextToSize(`: ${trx.customer.address}`, W - margin - rightValSJ);
+    doc.text(addressLines, rightValSJ, y);
+  }
   y += 6;
   doc.setFont("helvetica", "bold");
   doc.text("No. Surat Jalan", margin, y);
