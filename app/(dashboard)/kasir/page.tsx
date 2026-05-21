@@ -47,6 +47,8 @@ export default function KasirPage() {
   const [lastTransaction, setLastTransaction] = useState<Record<string, unknown> | null>(null);
   const [processing, setProcessing] = useState(false);
   const [mobileTab, setMobileTab] = useState<"produk" | "keranjang">("produk");
+  const [pendingCustomerId, setPendingCustomerId] = useState<string | null>(null);
+  const [confirmChangeCustomer, setConfirmChangeCustomer] = useState(false);
 
   const loadData = useCallback(async () => {
     const [pRes, cRes] = await Promise.all([fetch("/api/produk"), fetch("/api/pelanggan")]);
@@ -89,6 +91,16 @@ export default function KasirPage() {
 
   async function handleSelectCustomer(customerId: string) {
     if (!customerId) { setSelectedCustomer(null); recalcCartPrices(null); return; }
+    // Jika sudah ada pelanggan & keranjang tidak kosong → minta konfirmasi dulu
+    if (selectedCustomer && cart.length > 0 && customerId !== selectedCustomer.id) {
+      setPendingCustomerId(customerId);
+      setConfirmChangeCustomer(true);
+      return;
+    }
+    await applyCustomer(customerId);
+  }
+
+  async function applyCustomer(customerId: string) {
     setLoadingCustomer(true);
     const res = await fetch(`/api/pelanggan/${customerId}`);
     if (res.ok) {
@@ -429,6 +441,36 @@ export default function KasirPage() {
         onDelete={deleteSession}
         onCreateNew={async () => { await createSession(); setIsPanelOpen(false); }}
       />
+
+      {/* Dialog konfirmasi ganti pelanggan */}
+      <Dialog open={confirmChangeCustomer} onOpenChange={(open) => { if (!open) { setConfirmChangeCustomer(false); setPendingCustomerId(null); } }}>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>Ganti Pelanggan?</DialogTitle>
+            <DialogDescription>
+              Keranjang sudah berisi barang untuk <strong>{selectedCustomer?.name}</strong>. Mengganti pelanggan akan menyesuaikan ulang harga khusus. Barang di keranjang tetap ada.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setConfirmChangeCustomer(false); setPendingCustomerId(null); }}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                setConfirmChangeCustomer(false);
+                if (pendingCustomerId) await applyCustomer(pendingCustomerId);
+                setPendingCustomerId(null);
+              }}
+            >
+              Ganti Pelanggan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog Preview Keranjang */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
