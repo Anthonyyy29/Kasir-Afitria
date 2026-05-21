@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck, Truck } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck, Truck, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatRupiah } from "@/lib/utils";
 import { useCartSession, type CartItem } from "@/hooks/use-cart-session";
@@ -43,6 +43,7 @@ export default function KasirPage() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<Record<string, unknown> | null>(null);
   const [processing, setProcessing] = useState(false);
   const [mobileTab, setMobileTab] = useState<"produk" | "keranjang">("produk");
@@ -159,6 +160,7 @@ export default function KasirPage() {
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const total = subtotal;
+  const totalQty = cart.reduce((s, i) => s + i.quantity, 0);
   const payment = parseFloat(paymentAmount || "0");
   const change = payment - total;
 
@@ -407,14 +409,25 @@ export default function KasirPage() {
               <span className="text-blue-600">{formatRupiah(total)}</span>
             </div>
 
-            <Button
-              className="w-full gap-2"
-              disabled={cart.length === 0 || !selectedCustomer}
-              onClick={() => { setPaymentAmount(String(total)); setCheckoutDialogOpen(true); }}
-            >
-              <Receipt className="h-4 w-4" />
-              Bayar
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 gap-2"
+                disabled={cart.length === 0}
+                onClick={() => setPreviewOpen(true)}
+              >
+                <Eye className="h-4 w-4" />
+                Preview
+              </Button>
+              <Button
+                className="flex-1 gap-2"
+                disabled={cart.length === 0 || !selectedCustomer}
+                onClick={() => { setPaymentAmount(String(total)); setCheckoutDialogOpen(true); }}
+              >
+                <Receipt className="h-4 w-4" />
+                Bayar
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
