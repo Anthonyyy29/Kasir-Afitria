@@ -40,8 +40,6 @@ export default function KasirPage() {
   const [loadingCustomer, setLoadingCustomer] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
-  const [discountAmount, setDiscountAmount] = useState("");
-  const [discountReason, setDiscountReason] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
@@ -61,10 +59,6 @@ export default function KasirPage() {
     if (!activeSession || sessionLoading) return;
     isSwitchingRef.current = true;
     setCart(activeSession.items);
-    setDiscountAmount(
-      activeSession.discountAmount > 0 ? String(activeSession.discountAmount) : ""
-    );
-    setDiscountReason(activeSession.discountReason ?? "");
 
     if (activeSession.customerId) {
       setLoadingCustomer(true);
@@ -87,10 +81,10 @@ export default function KasirPage() {
     syncToDb(activeCartId, {
       customerId: selectedCustomer?.id ?? null,
       items: cart,
-      discountAmount: parseFloat(discountAmount || "0"),
-      discountReason: discountReason || null,
+      discountAmount: 0,
+      discountReason: null,
     });
-  }, [cart, selectedCustomer, discountAmount, discountReason, activeCartId, syncToDb, sessionLoading]);
+  }, [cart, selectedCustomer, activeCartId, syncToDb, sessionLoading]);
 
   async function handleSelectCustomer(customerId: string) {
     if (!customerId) { setSelectedCustomer(null); recalcCartPrices(null); return; }
@@ -164,8 +158,7 @@ export default function KasirPage() {
   function removeFromCart(variantId: string) { setCart(cart.filter((i) => i.variantId !== variantId)); }
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  const discount = parseFloat(discountAmount || "0");
-  const total = Math.max(0, subtotal - discount);
+  const total = subtotal;
   const payment = parseFloat(paymentAmount || "0");
   const change = payment - total;
 
@@ -191,8 +184,8 @@ export default function KasirPage() {
           quantity: i.quantity,
           priceAtSale: i.price,
         })),
-        discountAmount: discount,
-        discountReason: discountReason || null,
+        discountAmount: 0,
+        discountReason: null,
         paymentAmount: payment,
       }),
     });
@@ -208,8 +201,6 @@ export default function KasirPage() {
       };
       setLastTransaction(trxWithUnit);
       setCart([]);
-      setDiscountAmount("");
-      setDiscountReason("");
       setPaymentAmount("");
       setCheckoutDialogOpen(false);
       setReceiptDialogOpen(true);
@@ -411,15 +402,6 @@ export default function KasirPage() {
               </div>
             </div>
 
-            {/* Diskon */}
-            <div className="space-y-2">
-              <Label className="text-xs">Potongan Harga (Rp)</Label>
-              <Input type="number" placeholder="0" value={discountAmount} onChange={(e) => setDiscountAmount(e.target.value)} className="h-9" />
-              {parseFloat(discountAmount) > 0 && (
-                <Input placeholder="Alasan potongan (wajib diisi)..." value={discountReason} onChange={(e) => setDiscountReason(e.target.value)} className="h-9" />
-              )}
-            </div>
-
             <div className="border-t pt-2 flex justify-between font-bold text-base">
               <span>Total</span>
               <span className="text-blue-600">{formatRupiah(total)}</span>
@@ -474,14 +456,7 @@ export default function KasirPage() {
           </div>
 
             <div className="bg-gray-50 rounded-lg p-3 space-y-1.5 text-sm">
-              <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatRupiah(subtotal)}</span></div>
-              {discount > 0 && (
-                <div className="flex justify-between text-red-600">
-                  <span>Diskon {discountReason ? `(${discountReason})` : ""}</span>
-                  <span>-{formatRupiah(discount)}</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold text-base border-t pt-1.5"><span>Total</span><span className="text-blue-600">{formatRupiah(total)}</span></div>
+              <div className="flex justify-between font-bold text-base"><span>Total</span><span className="text-blue-600">{formatRupiah(total)}</span></div>
             </div>
 
             <div className="space-y-2">
