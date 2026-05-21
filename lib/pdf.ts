@@ -15,7 +15,7 @@ interface TransactionData {
   transactionNumber: string;
   createdAt: string;
   kasir: { name: string };
-  customer: { name: string; phone?: string | null };
+  customer: { name: string; phone?: string | null; address?: string | null };
   items: TransactionItem[];
   subtotal: string | number;
   discountAmount: string | number;
@@ -232,6 +232,15 @@ export async function generateNotaPDF(trx: TransactionData): Promise<jsPDF> {
   doc.setTextColor(120, 120, 120);
   doc.text("Terima kasih atas kepercayaannya", W / 2, y, { align: "center" });
 
+  if (trx.customer.address) {
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    const noteLines = doc.splitTextToSize(`Note : ${trx.customer.address}`, W - margin * 2);
+    doc.text(noteLines, margin, y);
+  }
+
+  doc.setTextColor(0, 0, 0);
   return doc;
 }
 
