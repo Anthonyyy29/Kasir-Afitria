@@ -154,17 +154,21 @@ export default function RiwayatPage() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Cari
             </Button>
-            <Select value={sortKey} onValueChange={setSortKey}>
-              <SelectTrigger className="w-48 shrink-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Terbaru</SelectItem>
-                <SelectItem value="oldest">Terlama</SelectItem>
-                <SelectItem value="total-desc">Total Terbesar</SelectItem>
-                <SelectItem value="total-asc">Total Terkecil</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="w-px h-8 bg-border self-center hidden sm:block" />
+            <div className="space-y-1">
+              <Label className="text-xs">Urut</Label>
+              <Select value={sortKey} onValueChange={setSortKey}>
+                <SelectTrigger className="w-40 shrink-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Terbaru</SelectItem>
+                  <SelectItem value="oldest">Terlama</SelectItem>
+                  <SelectItem value="total-desc">Total Terbesar</SelectItem>
+                  <SelectItem value="total-asc">Total Terkecil</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
