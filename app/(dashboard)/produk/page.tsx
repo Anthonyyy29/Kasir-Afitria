@@ -22,6 +22,8 @@ export default function ProdukPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("az");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [expanded, setExpanded] = useState<string[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -57,10 +59,27 @@ export default function ProdukPage() {
     });
   }, [load]);
 
-  const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.category.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const q = search.toLowerCase();
+  const filtered = (() => {
+    let arr = products.filter((p) =>
+      p.name.toLowerCase().includes(q) ||
+      p.category.name.toLowerCase().includes(q)
+    );
+    if (categoryFilter !== "all") arr = arr.filter((p) => p.categoryId === categoryFilter);
+    return [...arr].sort((a, b) => {
+      const sa = a.variants.reduce((s, v) => s + v.stock, 0);
+      const sb = b.variants.reduce((s, v) => s + v.stock, 0);
+      switch (sortKey) {
+        case "az": return a.name.localeCompare(b.name);
+        case "za": return b.name.localeCompare(a.name);
+        case "stock-desc": return sb - sa;
+        case "stock-asc": return sa - sb;
+        case "variants-desc": return b.variants.length - a.variants.length;
+        case "variants-asc": return a.variants.length - b.variants.length;
+        default: return 0;
+      }
+    });
+  })();
 
   function openCreate() {
     setEditing(null);
@@ -139,11 +158,35 @@ export default function ProdukPage() {
         <Button onClick={openCreate} className="gap-2 shrink-0"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Tambah </span>Produk</Button>
       </div>
 
-      <div className="flex gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-48 max-w-sm">
           <PackageSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input className="pl-9" placeholder="Cari produk..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Semua Kategori" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Kategori</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={sortKey} onValueChange={setSortKey}>
+          <SelectTrigger className="w-52">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="az">Nama A-Z</SelectItem>
+            <SelectItem value="za">Nama Z-A</SelectItem>
+            <SelectItem value="stock-desc">Stok Terbanyak</SelectItem>
+            <SelectItem value="stock-asc">Stok Tersedikit</SelectItem>
+            <SelectItem value="variants-desc">Varian Terbanyak</SelectItem>
+            <SelectItem value="variants-asc">Varian Tersedikit</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {loading ? (
