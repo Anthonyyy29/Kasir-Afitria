@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Loader2, Users, Tag, Search, Check, Download, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { formatRupiah } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ export default function PelangganPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("az");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
@@ -45,10 +47,20 @@ export default function PelangganPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = customers.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.phone ?? "").includes(search)
-  );
+  const q = search.toLowerCase();
+  const filtered = [...customers]
+    .filter((c) =>
+      c.name.toLowerCase().includes(q) ||
+      (c.phone ?? "").includes(search)
+    )
+    .sort((a, b) => {
+      switch (sortKey) {
+        case "za": return b.name.localeCompare(a.name);
+        case "txn-desc": return b._count.transactions - a._count.transactions;
+        case "txn-asc": return a._count.transactions - b._count.transactions;
+        default: return a.name.localeCompare(b.name);
+      }
+    });
 
   function openCreate() {
     setEditing(null);
@@ -269,11 +281,22 @@ export default function PelangganPage() {
         <Button onClick={openCreate} className="gap-2 shrink-0"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Tambah </span>Pelanggan</Button>
       </div>
 
-      <div className="flex gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-48 max-w-sm">
           <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input className="pl-9" placeholder="Cari nama / nomor HP..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
+        <Select value={sortKey} onValueChange={setSortKey}>
+          <SelectTrigger className="w-52">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="az">Nama A-Z</SelectItem>
+            <SelectItem value="za">Nama Z-A</SelectItem>
+            <SelectItem value="txn-desc">Transaksi Terbanyak</SelectItem>
+            <SelectItem value="txn-asc">Transaksi Tersedikit</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {loading ? (
