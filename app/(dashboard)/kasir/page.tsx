@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck, FileDown, Truck } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatRupiah } from "@/lib/utils";
 import { useCartSession, type CartItem } from "@/hooks/use-cart-session";
@@ -155,6 +155,12 @@ export default function KasirPage() {
     );
   }
 
+  function setQty(variantId: string, value: number) {
+    const stock = cart.find((i) => i.variantId === variantId)?.stock ?? 1;
+    const qty = Math.max(1, Math.min(stock, isNaN(value) ? 1 : value));
+    setCart((prev) => prev.map((i) => i.variantId === variantId ? { ...i, quantity: qty } : i));
+  }
+
   function removeFromCart(variantId: string) { setCart(cart.filter((i) => i.variantId !== variantId)); }
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
@@ -219,22 +225,23 @@ export default function KasirPage() {
   async function printReceipt() {
     if (!lastTransaction) return;
     const { generateReceiptPDF } = await import("@/lib/pdf");
-    const doc = generateReceiptPDF(lastTransaction as unknown as Parameters<typeof generateReceiptPDF>[0]);
+    const doc = await generateReceiptPDF(lastTransaction as unknown as Parameters<typeof generateReceiptPDF>[0]);
     doc.autoPrint();
     window.open(doc.output("bloburl"), "_blank");
   }
 
-  async function downloadNota() {
+  async function printNota() {
     if (!lastTransaction) return;
     const { generateNotaPDF } = await import("@/lib/pdf");
-    const doc = generateNotaPDF(lastTransaction as unknown as Parameters<typeof generateNotaPDF>[0]);
-    doc.save(`nota-${(lastTransaction as { transactionNumber: string }).transactionNumber}.pdf`);
+    const doc = await generateNotaPDF(lastTransaction as unknown as Parameters<typeof generateNotaPDF>[0]);
+    doc.autoPrint();
+    window.open(doc.output("bloburl"), "_blank");
   }
 
   async function printSuratJalan() {
     if (!lastTransaction) return;
     const { generateSuratJalanPDF } = await import("@/lib/pdf");
-    const doc = generateSuratJalanPDF(lastTransaction as unknown as Parameters<typeof generateSuratJalanPDF>[0]);
+    const doc = await generateSuratJalanPDF(lastTransaction as unknown as Parameters<typeof generateSuratJalanPDF>[0]);
     doc.autoPrint();
     window.open(doc.output("bloburl"), "_blank");
   }
@@ -372,7 +379,15 @@ export default function KasirPage() {
                         <button onClick={() => updateQty(item.variantId, -1)} className="rounded border w-6 h-6 flex items-center justify-center hover:bg-gray-100">
                           <Minus className="h-3 w-3" />
                         </button>
-                        <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={item.stock}
+                          value={item.quantity}
+                          onChange={(e) => setQty(item.variantId, parseInt(e.target.value))}
+                          onFocus={(e) => e.target.select()}
+                          className="text-sm font-medium w-10 text-center border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        />
                         <button onClick={() => updateQty(item.variantId, 1)} className="rounded border w-6 h-6 flex items-center justify-center hover:bg-gray-100" disabled={item.quantity >= item.stock}>
                           <Plus className="h-3 w-3" />
                         </button>
@@ -504,8 +519,8 @@ export default function KasirPage() {
                 <p className="text-sm text-gray-500 mt-1">No: {(lastTransaction as { transactionNumber: string }).transactionNumber}</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 gap-2" onClick={downloadNota}>
-                  <FileDown className="h-4 w-4" />Download Nota
+                <Button variant="outline" className="flex-1 gap-2" onClick={printNota}>
+                  <Printer className="h-4 w-4" />Cetak Nota
                 </Button>
                 <Button variant="outline" className="flex-1 gap-2" onClick={printReceipt}>
                   <Printer className="h-4 w-4" />Cetak Struk
