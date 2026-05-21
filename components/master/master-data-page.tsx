@@ -98,8 +98,9 @@ export function MasterDataPage({ title, apiUrl, extraFields = [], renderExtra }:
     }
   }
 
+  const q = search.toLowerCase();
   const displayed = [...items]
-    .filter((i) => i.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((i) => i.name.toLowerCase().includes(q))
     .sort((a, b) =>
       sortKey === "az" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
     );
