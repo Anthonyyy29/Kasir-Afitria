@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Pencil, Trash2, Loader2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Item {
@@ -39,6 +40,8 @@ export function MasterDataPage({ title, apiUrl, extraFields = [], renderExtra }:
   const [editing, setEditing] = useState<Item | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({ name: "" });
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<"az" | "za">("az");
 
   async function load() {
     setLoading(true);
@@ -95,6 +98,12 @@ export function MasterDataPage({ title, apiUrl, extraFields = [], renderExtra }:
     }
   }
 
+  const displayed = [...items]
+    .filter((i) => i.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) =>
+      sortKey === "az" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+    );
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
@@ -106,6 +115,27 @@ export function MasterDataPage({ title, apiUrl, extraFields = [], renderExtra }:
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Tambah </span>{title}
         </Button>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-48 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            className="pl-9"
+            placeholder={`Cari ${title.toLowerCase()}...`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={sortKey} onValueChange={(v) => setSortKey(v as "az" | "za")}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="az">Nama A-Z</SelectItem>
+            <SelectItem value="za">Nama Z-A</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
@@ -127,14 +157,14 @@ export function MasterDataPage({ title, apiUrl, extraFields = [], renderExtra }:
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.length === 0 ? (
+                {displayed.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3 + extraFields.length} className="text-center text-gray-400 py-8">
-                      Belum ada data
+                      {items.length === 0 ? "Belum ada data" : "Tidak ada data ditemukan"}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  items.map((item) => (
+                  displayed.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.name}</TableCell>
                       {extraFields.map((f) => (
