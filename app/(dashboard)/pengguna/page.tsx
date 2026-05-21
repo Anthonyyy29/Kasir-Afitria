@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Loader2, Shield, UserCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Shield, UserCircle, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface User { id: string; name: string; role: "ADMIN" | "KASIR"; }
@@ -24,6 +24,8 @@ export default function PenggunaPage() {
   const [editing, setEditing] = useState<User | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", role: "KASIR" });
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("az");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,6 +76,18 @@ export default function PenggunaPage() {
     else toast({ title: "Gagal menghapus", variant: "destructive" });
   }
 
+  const q = search.toLowerCase();
+  const displayed = [...users]
+    .filter((u) => u.name.toLowerCase().includes(q))
+    .sort((a, b) => {
+      switch (sortKey) {
+        case "za": return b.name.localeCompare(a.name);
+        case "admin-first": return a.role === "ADMIN" ? -1 : b.role === "ADMIN" ? 1 : 0;
+        case "kasir-first": return a.role === "KASIR" ? -1 : b.role === "KASIR" ? 1 : 0;
+        default: return a.name.localeCompare(b.name);
+      }
+    });
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -84,13 +98,38 @@ export default function PenggunaPage() {
         <Button onClick={openCreate} className="gap-2 shrink-0"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Tambah </span>Pengguna</Button>
       </div>
 
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-48 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            className="pl-9"
+            placeholder="Cari pengguna..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={sortKey} onValueChange={setSortKey}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="az">Nama A-Z</SelectItem>
+            <SelectItem value="za">Nama Z-A</SelectItem>
+            <SelectItem value="admin-first">Admin Dulu</SelectItem>
+            <SelectItem value="kasir-first">Kasir Dulu</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+      ) : displayed.length === 0 ? (
+        <div className="text-center text-gray-400 py-12 border rounded-lg bg-white">Tidak ada pengguna ditemukan</div>
       ) : (
         <>
           {/* Mobile card list */}
           <div className="lg:hidden space-y-2">
-            {users.map((u) => (
+            {displayed.map((u) => (
               <div key={u.id} className="border rounded-lg bg-white px-4 py-3 flex items-center gap-3">
                 <div className={`rounded-full p-1.5 shrink-0 ${u.role === "ADMIN" ? "bg-purple-100" : "bg-blue-100"}`}>
                   {u.role === "ADMIN"
@@ -129,7 +168,7 @@ export default function PenggunaPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((u) => (
+                  {displayed.map((u) => (
                     <TableRow key={u.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
