@@ -113,7 +113,7 @@ export function CartPanel({
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{label}</p>
                   <p className="text-xs text-gray-500">
-                    {s.items.length} item &middot; {formatRupiah(total)} &middot; {timeAgo(s.createdAt)}
+                    {s.items.length} item &middot; {s.items.reduce((sum, i) => sum + i.quantity, 0)} pcs &middot; {formatRupiah(total)} &middot; {timeAgo(s.createdAt)}
                   </p>
                 </div>
 

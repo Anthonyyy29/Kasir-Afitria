@@ -256,7 +256,7 @@ export default function KasirPage() {
           Keranjang
           {cart.length > 0 && (
             <span className="bg-blue-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
-              {cart.length}
+              {totalQty}
             </span>
           )}
         </button>
@@ -344,7 +344,7 @@ export default function KasirPage() {
           <CardHeader className="py-3 px-4 border-b flex-shrink-0">
             <CardTitle className="text-sm flex items-center gap-2">
               <ShoppingCart className="h-4 w-4" />
-              Keranjang ({cart.length} item)
+              Keranjang ({cart.length} item · {totalQty} pcs)
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto p-0">

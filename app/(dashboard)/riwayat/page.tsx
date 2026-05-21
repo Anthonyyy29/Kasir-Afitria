@@ -82,8 +82,9 @@ export default function RiwayatPage() {
     if (!selectedTrx) return;
     setPrinting("nota");
     const { generateNotaPDF } = await import("@/lib/pdf");
-    const doc = generateNotaPDF(selectedTrx as unknown as Parameters<typeof generateNotaPDF>[0]);
-    doc.save(`nota-${selectedTrx.transactionNumber}.pdf`);
+    const doc = await generateNotaPDF(selectedTrx as unknown as Parameters<typeof generateNotaPDF>[0]);
+    doc.autoPrint();
+    window.open(doc.output("bloburl"), "_blank");
     setPrinting(null);
   }
 
@@ -91,7 +92,7 @@ export default function RiwayatPage() {
     if (!selectedTrx) return;
     setPrinting("struk");
     const { generateReceiptPDF } = await import("@/lib/pdf");
-    const doc = generateReceiptPDF(selectedTrx as unknown as Parameters<typeof generateReceiptPDF>[0]);
+    const doc = await generateReceiptPDF(selectedTrx as unknown as Parameters<typeof generateReceiptPDF>[0]);
     doc.autoPrint();
     window.open(doc.output("bloburl"), "_blank");
     setPrinting(null);
@@ -101,7 +102,7 @@ export default function RiwayatPage() {
     if (!selectedTrx) return;
     setPrinting("suratjalan");
     const { generateSuratJalanPDF } = await import("@/lib/pdf");
-    const doc = generateSuratJalanPDF(selectedTrx as unknown as Parameters<typeof generateSuratJalanPDF>[0]);
+    const doc = await generateSuratJalanPDF(selectedTrx as unknown as Parameters<typeof generateSuratJalanPDF>[0]);
     doc.autoPrint();
     window.open(doc.output("bloburl"), "_blank");
     setPrinting(null);
@@ -168,7 +169,7 @@ export default function RiwayatPage() {
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-semibold text-sm">{formatRupiah(t.totalAmount)}</p>
-                      <Badge variant="secondary" className="text-[10px] mt-1">{t.items.length} item</Badge>
+                      <Badge variant="secondary" className="text-[10px] mt-1">{t.items.length} item · {t.items.reduce((s, i) => s + i.quantity, 0)} pcs</Badge>
                     </div>
                   </div>
                 </div>
@@ -210,7 +211,7 @@ export default function RiwayatPage() {
                         <TableCell className="text-sm text-gray-600">{t.kasir.name}</TableCell>
                         <TableCell className="text-sm">{formatDate(t.createdAt)}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className="text-xs">{t.items.length}</Badge>
+                          <Badge variant="secondary" className="text-xs">{t.items.length} item · {t.items.reduce((s, i) => s + i.quantity, 0)} pcs</Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <p className="font-medium text-sm">{formatRupiah(t.totalAmount)}</p>
@@ -290,6 +291,12 @@ export default function RiwayatPage() {
                         <TableCell className="text-right text-sm font-medium">{formatRupiah(item.subtotal)}</TableCell>
                       </TableRow>
                     ))}
+                    <TableRow className="border-t-2 bg-gray-50 font-bold">
+                      <TableCell className="py-2 text-sm">Total</TableCell>
+                      <TableCell className="py-2 text-center text-sm">{selectedTrx.items.reduce((s, i) => s + i.quantity, 0)}</TableCell>
+                      <TableCell />
+                      <TableCell className="py-2 text-right text-sm text-blue-600">{formatRupiah(selectedTrx.subtotal)}</TableCell>
+                    </TableRow>
                   </TableBody>
                 </Table>
               </div>
