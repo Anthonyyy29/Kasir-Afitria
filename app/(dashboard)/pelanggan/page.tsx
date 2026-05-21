@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover";
 import { Plus, Pencil, Trash2, Loader2, Users, Tag, Search, Check, Download, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
@@ -19,55 +18,14 @@ interface Customer { id: string; name: string; phone: string | null; email: stri
 interface CustomerDetail extends Customer { customerPrices: CustomerPrice[]; }
 interface Variant { id: string; colorId: string | null; sizeId: string | null; basePrice: string; color: { name: string } | null; size: { name: string } | null; product: { name: string }; }
 
-type FormState = { name: string; phone: string; email: string; address: string };
-
-const FORM_FIELDS = [
-  { key: "name",    label: "Nama",      placeholder: "Nama pelanggan" },
-  { key: "phone",   label: "Nomor HP",  placeholder: "08xxxxxxxxxx" },
-  { key: "email",   label: "Email",     placeholder: "email@contoh.com" },
-  { key: "address", label: "Alamat",    placeholder: "Alamat lengkap" },
-] as const;
-
-function EditPopoverForm({ form, setForm, saving, onSave, onCancel }: {
-  form: FormState;
-  setForm: (f: FormState) => void;
-  saving: boolean;
-  onSave: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <p className="font-semibold text-sm">Edit Pelanggan</p>
-      {FORM_FIELDS.map((field) => (
-        <div key={field.key} className="space-y-1.5">
-          <Label className="text-xs">{field.label}</Label>
-          <Input
-            className="h-8 text-sm"
-            placeholder={field.placeholder}
-            value={form[field.key]}
-            onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
-            onKeyDown={(e) => { if (e.key === "Enter") onSave(); }}
-          />
-        </div>
-      ))}
-      <div className="flex justify-end gap-2 pt-1">
-        <Button variant="outline" size="sm" onClick={onCancel}>Batal</Button>
-        <Button size="sm" onClick={onSave} disabled={saving || !form.name}>
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Simpan"}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export default function PelangganPage() {
   const { toast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false); // hanya untuk Tambah Pelanggan
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Customer | null>(null); // kontrol Popover edit per baris
+  const [editing, setEditing] = useState<Customer | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerDetail | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "" });
@@ -99,9 +57,9 @@ export default function PelangganPage() {
   }
 
   function openEdit(c: Customer) {
-    setDialogOpen(false);
-    setForm({ name: c.name, phone: c.phone ?? "", email: c.email ?? "", address: c.address ?? "" });
     setEditing(c);
+    setForm({ name: c.name, phone: c.phone ?? "", email: c.email ?? "", address: c.address ?? "" });
+    setDialogOpen(true);
   }
 
   async function openPriceDialog(c: Customer) {
@@ -144,8 +102,7 @@ export default function PelangganPage() {
       : await fetch("/api/pelanggan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
     if (res.ok) {
       toast({ title: editing ? "Pelanggan diperbarui" : "Pelanggan ditambahkan" });
-      if (editing) setEditing(null);
-      else setDialogOpen(false);
+      setDialogOpen(false);
       load();
     } else {
       toast({ title: "Gagal", variant: "destructive" });
@@ -344,17 +301,9 @@ export default function PelangganPage() {
                   <Button variant="ghost" size="sm" className="flex-1 gap-1 text-xs rounded-none h-9 text-blue-600" onClick={() => openPriceDialog(c)}>
                     <Tag className="h-3.5 w-3.5" />Harga
                   </Button>
-                  <Popover open={editing?.id === c.id} onOpenChange={(open) => { if (!open && editing?.id === c.id) setEditing(null); }}>
-                    <PopoverAnchor asChild>
-                      <Button variant="ghost" size="sm" className="flex-1 gap-1 text-xs rounded-none h-9 border-l"
-                        onClick={() => editing?.id === c.id ? setEditing(null) : openEdit(c)}>
-                        <Pencil className="h-3.5 w-3.5" />Edit
-                      </Button>
-                    </PopoverAnchor>
-                    <PopoverContent className="w-72" align="end">
-                      <EditPopoverForm form={form} setForm={setForm} saving={saving} onSave={handleSave} onCancel={() => setEditing(null)} />
-                    </PopoverContent>
-                  </Popover>
+                  <Button variant="ghost" size="sm" className="flex-1 gap-1 text-xs rounded-none h-9 border-l" onClick={() => openEdit(c)}>
+                    <Pencil className="h-3.5 w-3.5" />Edit
+                  </Button>
                   <Button variant="ghost" size="sm" className="flex-1 gap-1 text-xs rounded-none h-9 border-l text-red-500 hover:text-red-700" onClick={() => handleDelete(c)}>
                     <Trash2 className="h-3.5 w-3.5" />Hapus
                   </Button>
@@ -389,17 +338,7 @@ export default function PelangganPage() {
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end">
                           <Button variant="ghost" size="icon" title="Harga Khusus" onClick={() => openPriceDialog(c)}><Tag className="h-4 w-4 text-blue-500" /></Button>
-                          <Popover open={editing?.id === c.id} onOpenChange={(open) => { if (!open && editing?.id === c.id) setEditing(null); }}>
-                            <PopoverAnchor asChild>
-                              <Button variant="ghost" size="icon"
-                                onClick={() => editing?.id === c.id ? setEditing(null) : openEdit(c)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </PopoverAnchor>
-                            <PopoverContent className="w-72" align="end">
-                              <EditPopoverForm form={form} setForm={setForm} saving={saving} onSave={handleSave} onCancel={() => setEditing(null)} />
-                            </PopoverContent>
-                          </Popover>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" onClick={() => handleDelete(c)} className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       </TableCell>
@@ -412,22 +351,26 @@ export default function PelangganPage() {
         </>
       )}
 
-      {/* Dialog tambah pelanggan */}
+      {/* Dialog tambah/edit pelanggan */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>Tambah Pelanggan</DialogTitle>
-            <DialogDescription className="sr-only">Isi data pelanggan baru</DialogDescription>
+            <DialogTitle>{editing ? "Edit Pelanggan" : "Tambah Pelanggan"}</DialogTitle>
+            <DialogDescription className="sr-only">{editing ? "Edit data pelanggan" : "Isi data pelanggan baru"}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {FORM_FIELDS.map((field) => (
+            {[
+              { key: "name", label: "Nama", placeholder: "Nama pelanggan", required: true },
+              { key: "phone", label: "Nomor HP", placeholder: "08xxxxxxxxxx" },
+              { key: "email", label: "Email", placeholder: "email@contoh.com" },
+              { key: "address", label: "Alamat", placeholder: "Alamat lengkap" },
+            ].map((field) => (
               <div key={field.key} className="space-y-2">
                 <Label>{field.label}</Label>
                 <Input
                   placeholder={field.placeholder}
-                  value={form[field.key]}
+                  value={form[field.key as keyof typeof form]}
                   onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
                 />
               </div>
             ))}
