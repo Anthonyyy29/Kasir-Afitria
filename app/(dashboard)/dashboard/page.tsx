@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatRupiah } from "@/lib/utils";
-import { ShoppingCart, Users, TrendingUp, AlertTriangle } from "lucide-react";
+import { ShoppingCart, Users, TrendingUp } from "lucide-react";
 import { DashboardChart } from "@/components/dashboard/dashboard-chart";
 
 async function getDailySales() {
@@ -30,20 +30,16 @@ export default async function DashboardPage() {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const [todayTransactions, totalCustomers, variants, dailySales] = await Promise.all([
+  const [todayTransactions, totalCustomers, dailySales] = await Promise.all([
     prisma.transaction.findMany({
       where: { createdAt: { gte: today, lt: tomorrow } },
       select: { totalAmount: true },
     }),
     isAdmin ? prisma.customer.count() : Promise.resolve(0),
-    isAdmin
-      ? prisma.productVariant.findMany({ select: { stock: true, product: { select: { lowStockThreshold: true } } } })
-      : Promise.resolve([]),
     getDailySales(),
   ]);
 
   const todayRevenue = todayTransactions.reduce((sum, t) => sum + Number(t.totalAmount), 0);
-  const lowStockCount = variants.filter((v) => v.stock <= v.product.lowStockThreshold).length;
 
   return (
     <div className="space-y-6">
@@ -88,16 +84,6 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Stok Menipis</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-gray-900">{lowStockCount}</p>
-                <p className="text-xs text-gray-500 mt-1">varian perlu restock</p>
-              </CardContent>
-            </Card>
           </>
         )}
       </div>

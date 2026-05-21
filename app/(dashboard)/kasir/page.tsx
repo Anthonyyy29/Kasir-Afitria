@@ -118,16 +118,8 @@ export default function KasirPage() {
   function addToCart(product: Product, variant: Variant) {
     const existing = cart.find((i) => i.variantId === variant.id);
     if (existing) {
-      if (existing.quantity >= variant.stock) {
-        toast({ title: "Stok tidak cukup", variant: "destructive" });
-        return;
-      }
       setCart(cart.map((i) => i.variantId === variant.id ? { ...i, quantity: i.quantity + 1 } : i));
     } else {
-      if (variant.stock === 0) {
-        toast({ title: "Stok habis", variant: "destructive" });
-        return;
-      }
       const vInfo = [variant.color?.name, variant.size?.name].filter(Boolean).join(" / ");
       const price = getPrice(variant.id, variant.basePrice);
       setCart([...cart, {
@@ -146,13 +138,12 @@ export default function KasirPage() {
 
   function updateQty(variantId: string, delta: number) {
     setCart((prev) =>
-      prev.map((i) => i.variantId === variantId ? { ...i, quantity: Math.max(1, Math.min(i.stock, i.quantity + delta)) } : i)
+      prev.map((i) => i.variantId === variantId ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i)
     );
   }
 
   function setQty(variantId: string, value: number) {
-    const stock = cart.find((i) => i.variantId === variantId)?.stock ?? 1;
-    const qty = Math.max(1, Math.min(stock, isNaN(value) ? 1 : value));
+    const qty = Math.max(1, isNaN(value) ? 1 : value);
     setCart((prev) => prev.map((i) => i.variantId === variantId ? { ...i, quantity: qty } : i));
   }
 
@@ -318,15 +309,13 @@ export default function KasirPage() {
                       <button
                         key={v.id}
                         onClick={() => addToCart(product, v)}
-                        disabled={v.stock === 0}
-                        className={`group flex flex-col items-start border rounded-lg px-3 py-2 text-left transition-all hover:border-blue-400 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed ${hasCustomPrice ? "border-green-400 bg-green-50" : ""}`}
+                        className={`group flex flex-col items-start border rounded-lg px-3 py-2 text-left transition-all hover:border-blue-400 hover:bg-blue-50 ${hasCustomPrice ? "border-green-400 bg-green-50" : ""}`}
                       >
                         <div className="flex items-center gap-1.5">
                           {v.color?.hex && <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: v.color.hex }} />}
                           <span className="text-xs font-medium">{vLabel}</span>
                         </div>
                         <span className="text-sm font-bold text-blue-600 mt-0.5">{formatRupiah(price)}</span>
-                        <span className={`text-[10px] mt-0.5 ${v.stock <= 5 ? "text-yellow-600" : "text-gray-400"}`}>Stok: {v.stock}</span>
                         {hasCustomPrice && <span className="text-[10px] text-green-600 font-medium">Harga khusus</span>}
                       </button>
                     );
@@ -375,13 +364,12 @@ export default function KasirPage() {
                         <input
                           type="number"
                           min={1}
-                          max={item.stock}
                           value={item.quantity}
                           onChange={(e) => setQty(item.variantId, parseInt(e.target.value))}
                           onFocus={(e) => e.target.select()}
                           className="text-sm font-medium w-10 text-center border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
                         />
-                        <button onClick={() => updateQty(item.variantId, 1)} className="rounded border w-6 h-6 flex items-center justify-center hover:bg-gray-100" disabled={item.quantity >= item.stock}>
+                        <button onClick={() => updateQty(item.variantId, 1)} className="rounded border w-6 h-6 flex items-center justify-center hover:bg-gray-100">
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>

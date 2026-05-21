@@ -108,14 +108,6 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Kurangi stok per varian
-      for (const item of items) {
-        await tx.productVariant.update({
-          where: { id: item.productVariantId },
-          data: { stock: { decrement: item.quantity } },
-        });
-      }
-
       return created;
     });
 
