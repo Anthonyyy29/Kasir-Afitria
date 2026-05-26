@@ -91,6 +91,8 @@ export async function generateReceiptPDF(trx: TransactionData): Promise<jsPDF> {
   doc.line(5, y, 75, y);
   y += 4;
 
+  const totalQty = trx.items.reduce((sum, item) => sum + item.quantity, 0);
+
   const rows = [
     ...(Number(trx.discountAmount) > 0
       ? [
@@ -98,6 +100,7 @@ export async function generateReceiptPDF(trx: TransactionData): Promise<jsPDF> {
           [`Diskon${trx.discountReason ? ` (${trx.discountReason})` : ""}`, `-${formatRupiah(trx.discountAmount)}`],
         ]
       : []),
+    ["Total Qty", `${totalQty} item`],
     ["TOTAL", formatRupiah(trx.totalAmount)],
   ];
 
@@ -201,6 +204,8 @@ export async function generateNotaPDF(trx: TransactionData): Promise<jsPDF> {
   doc.line(colLabel - 5, y, W - margin, y);
   y += 5;
 
+  const totalQtyNota = trx.items.reduce((sum, item) => sum + item.quantity, 0);
+
   const summaryRows: [string, string, boolean][] = [
     ...(Number(trx.discountAmount) > 0
       ? [
@@ -208,6 +213,7 @@ export async function generateNotaPDF(trx: TransactionData): Promise<jsPDF> {
           [`Diskon${trx.discountReason ? ` (${trx.discountReason})` : ""}`, `-${formatRupiah(trx.discountAmount)}`, false] as [string, string, boolean],
         ]
       : []),
+    ["Total Qty", `${totalQtyNota} item`, false],
     ["TOTAL", formatRupiah(trx.totalAmount), true],
   ];
 
@@ -308,7 +314,13 @@ export async function generateSuratJalanPDF(trx: TransactionData): Promise<jsPDF
     alternateRowStyles: { fillColor: [240, 250, 242] },
   });
 
-  y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
+  y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
+
+  const totalQtySJ = trx.items.reduce((sum, item) => sum + item.quantity, 0);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Total Qty: ${totalQtySJ} item`, W - margin, y, { align: "right" });
+  y += 10;
 
   // Catatan
   doc.setFontSize(8);
