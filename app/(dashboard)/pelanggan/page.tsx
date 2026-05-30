@@ -178,7 +178,12 @@ export default function PelangganPage() {
 
   function handleExport() {
     if (!selectedCustomer) return;
-    const rows = allVariants.map(v => ({
+    const sorted = [...allVariants].sort((a, b) =>
+      a.product.name.localeCompare(b.product.name, "id") ||
+      (a.color?.name ?? "").localeCompare(b.color?.name ?? "", "id") ||
+      (a.size?.name ?? "").localeCompare(b.size?.name ?? "", "id")
+    );
+    const rows = sorted.map(v => ({
       "ID Varian (jangan diubah)": v.id,
       "Produk": v.product.name,
       "Warna": v.color?.name ?? "-",

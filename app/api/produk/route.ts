@@ -17,9 +17,10 @@ export async function GET() {
         variants: {
           where: { deletedAt: null },
           include: { color: true, size: true },
+          orderBy: [{ color: { name: "asc" } }, { size: { name: "asc" } }],
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { name: "asc" },
     });
 
     return NextResponse.json(products);
