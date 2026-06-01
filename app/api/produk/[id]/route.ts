@@ -49,7 +49,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       if (Array.isArray(variants)) {
         const existingVariants = await tx.productVariant.findMany({
           where: { productId: id, deletedAt: null },
-          select: { id: true, colorId: true, sizeId: true, _count: { select: { transactionItems: true } } },
+          select: { id: true, colorId: true, sizeId: true },
         });
 
         const existingMap = new Map(
@@ -59,8 +59,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
         for (const ev of existingVariants) {
           const key = `${ev.colorId ?? ""}|${ev.sizeId ?? ""}`;
-          if (!newKeys.has(key) && ev._count.transactionItems === 0) {
-            await tx.productVariant.delete({ where: { id: ev.id } });
+          if (!newKeys.has(key)) {
+            await tx.productVariant.update({ where: { id: ev.id }, data: { deletedAt: new Date() } });
           }
         }
 
