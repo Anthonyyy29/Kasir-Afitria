@@ -45,7 +45,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (result === "forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json();
-    const { customerId, items, discountAmount, discountReason } = body;
+    const { customerId, items, discountAmount, discountReason, shippingCost } = body;
 
     const updated = await prisma.cartSession.update({
       where: { id },
@@ -54,6 +54,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
         ...(items !== undefined && { items }),
         ...(discountAmount !== undefined && { discountAmount }),
         ...(discountReason !== undefined && { discountReason: discountReason ?? null }),
+        ...(shippingCost !== undefined && { shippingCost }),
       },
       include: { customer: { select: { id: true, name: true, phone: true } } },
     });
