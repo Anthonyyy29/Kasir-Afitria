@@ -20,6 +20,7 @@ export interface CartSessionData {
   items: CartItem[];
   discountAmount: number;
   discountReason: string | null;
+  shippingCost: number;
   createdAt: string;
   updatedAt: string;
   customer: { id: string; name: string; phone: string | null } | null;
@@ -30,6 +31,7 @@ interface SyncPayload {
   items?: CartItem[];
   discountAmount?: number;
   discountReason?: string | null;
+  shippingCost?: number;
 }
 
 const ACTIVE_CART_KEY = "kasir_active_cart_id";
