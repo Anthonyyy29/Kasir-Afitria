@@ -62,14 +62,14 @@ export async function POST(req: NextRequest) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { customerId, items, discountAmount, discountReason, paymentAmount } = body;
+    const { customerId, items, discountAmount, discountReason, shippingCost, paymentAmount } = body;
 
     const subtotal = items.reduce(
       (sum: number, item: { priceAtSale: number; quantity: number }) =>
         sum + item.priceAtSale * item.quantity,
       0
     );
-    const totalAmount = subtotal - (discountAmount ?? 0);
+    const totalAmount = subtotal - (discountAmount ?? 0) + (shippingCost ?? 0);
     const changeAmount = paymentAmount - totalAmount;
 
     const transaction = await prisma.$transaction(async (tx) => {
@@ -81,6 +81,7 @@ export async function POST(req: NextRequest) {
           subtotal,
           discountAmount: discountAmount ?? 0,
           discountReason: discountReason || null,
+          shippingCost: shippingCost ?? 0,
           totalAmount,
           paymentAmount,
           changeAmount,
