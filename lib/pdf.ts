@@ -20,6 +20,7 @@ interface TransactionData {
   subtotal: string | number;
   discountAmount: string | number;
   discountReason?: string | null;
+  shippingCost?: string | number;
   totalAmount: string | number;
   paymentAmount: string | number;
   changeAmount: string | number;
@@ -93,12 +94,14 @@ export async function generateReceiptPDF(trx: TransactionData): Promise<jsPDF> {
 
   const totalQty = trx.items.reduce((sum, item) => sum + item.quantity, 0);
 
+  const hasBreakdown = Number(trx.discountAmount) > 0 || Number(trx.shippingCost ?? 0) > 0;
   const rows = [
+    ...(hasBreakdown ? [["Subtotal", formatRupiah(trx.subtotal)]] : []),
     ...(Number(trx.discountAmount) > 0
-      ? [
-          ["Subtotal", formatRupiah(trx.subtotal)],
-          [`Diskon${trx.discountReason ? ` (${trx.discountReason})` : ""}`, `-${formatRupiah(trx.discountAmount)}`],
-        ]
+      ? [[`Diskon${trx.discountReason ? ` (${trx.discountReason})` : ""}`, `-${formatRupiah(trx.discountAmount)}`]]
+      : []),
+    ...(Number(trx.shippingCost ?? 0) > 0
+      ? [["Ongkos Kirim", `+${formatRupiah(trx.shippingCost!)}`]]
       : []),
     ["Total Qty", `${totalQty} item`],
     ["TOTAL", formatRupiah(trx.totalAmount)],
@@ -206,12 +209,14 @@ export async function generateNotaPDF(trx: TransactionData): Promise<jsPDF> {
 
   const totalQtyNota = trx.items.reduce((sum, item) => sum + item.quantity, 0);
 
+  const hasBreakdownNota = Number(trx.discountAmount) > 0 || Number(trx.shippingCost ?? 0) > 0;
   const summaryRows: [string, string, boolean][] = [
+    ...(hasBreakdownNota ? [["Subtotal", formatRupiah(trx.subtotal), false] as [string, string, boolean]] : []),
     ...(Number(trx.discountAmount) > 0
-      ? [
-          ["Subtotal", formatRupiah(trx.subtotal), false] as [string, string, boolean],
-          [`Diskon${trx.discountReason ? ` (${trx.discountReason})` : ""}`, `-${formatRupiah(trx.discountAmount)}`, false] as [string, string, boolean],
-        ]
+      ? [[`Diskon${trx.discountReason ? ` (${trx.discountReason})` : ""}`, `-${formatRupiah(trx.discountAmount)}`, false] as [string, string, boolean]]
+      : []),
+    ...(Number(trx.shippingCost ?? 0) > 0
+      ? [["Ongkos Kirim", `+${formatRupiah(trx.shippingCost!)}`, false] as [string, string, boolean]]
       : []),
     ["Total Qty", `${totalQtyNota} item`, false],
     ["TOTAL", formatRupiah(trx.totalAmount), true],
