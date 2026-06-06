@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck, Truck, Eye } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck, Truck, Eye, ChevronRight, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatRupiah } from "@/lib/utils";
 import { useCartSession, type CartItem } from "@/hooks/use-cart-session";
@@ -41,12 +41,14 @@ export default function KasirPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [shippingCost, setShippingCost] = useState(0);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<Record<string, unknown> | null>(null);
   const [processing, setProcessing] = useState(false);
   const [mobileTab, setMobileTab] = useState<"produk" | "keranjang">("produk");
+  const [isCartCollapsed, setIsCartCollapsed] = useState(false);
   const [pendingCustomerId, setPendingCustomerId] = useState<string | null>(null);
   const [confirmChangeCustomer, setConfirmChangeCustomer] = useState(false);
 
@@ -62,6 +64,7 @@ export default function KasirPage() {
     if (!activeSession || sessionLoading) return;
     isSwitchingRef.current = true;
     setCart(activeSession.items);
+    setShippingCost(activeSession.shippingCost ?? 0);
 
     if (activeSession.customerId) {
       setLoadingCustomer(true);
@@ -86,8 +89,9 @@ export default function KasirPage() {
       items: cart,
       discountAmount: 0,
       discountReason: null,
+      shippingCost,
     });
-  }, [cart, selectedCustomer, activeCartId, syncToDb, sessionLoading]);
+  }, [cart, selectedCustomer, shippingCost, activeCartId, syncToDb, sessionLoading]);
 
   async function handleSelectCustomer(customerId: string) {
     if (!customerId) { setSelectedCustomer(null); recalcCartPrices(null); return; }
@@ -161,7 +165,7 @@ export default function KasirPage() {
   function removeFromCart(variantId: string) { setCart(cart.filter((i) => i.variantId !== variantId)); }
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  const total = subtotal;
+  const total = subtotal + shippingCost;
   const totalQty = cart.reduce((s, i) => s + i.quantity, 0);
   const payment = parseFloat(paymentAmount || "0");
   const change = payment - total;
@@ -190,6 +194,7 @@ export default function KasirPage() {
         })),
         discountAmount: 0,
         discountReason: null,
+        shippingCost,
         paymentAmount: payment,
       }),
     });
@@ -206,6 +211,7 @@ export default function KasirPage() {
       setLastTransaction(trxWithUnit);
       setCart([]);
       setPaymentAmount("");
+      setShippingCost(0);
       setCheckoutDialogOpen(false);
       setReceiptDialogOpen(true);
       await loadData();
@@ -339,12 +345,36 @@ export default function KasirPage() {
       </div>
 
       {/* Kanan: Cart */}
-      <div className={`w-full lg:w-80 flex-col gap-3 ${mobileTab === "produk" ? "hidden lg:flex" : "flex"}`}>
+      <div className={`flex-col gap-3 w-full lg:transition-[width] lg:duration-200 ${isCartCollapsed ? "lg:w-10" : "lg:w-80"} ${mobileTab === "produk" ? "hidden lg:flex" : "flex"}`}>
+        {/* Desktop collapsed strip */}
+        {isCartCollapsed && (
+          <div
+            className="hidden lg:flex flex-col items-center gap-2 py-3 border rounded-xl bg-white cursor-pointer flex-1 hover:bg-gray-50 transition-colors"
+            onClick={() => setIsCartCollapsed(false)}
+          >
+            <ChevronLeft className="h-4 w-4 text-gray-500 rotate-180" />
+            {cart.length > 0 && (
+              <span className="bg-blue-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none">
+                {totalQty > 99 ? "99+" : totalQty}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Expanded content: always on mobile, conditional on desktop */}
+        <div className={`flex flex-col flex-1 gap-3 min-h-0 ${isCartCollapsed ? "flex lg:hidden" : "flex"}`}>
         <Card className="flex-1 flex flex-col overflow-hidden">
           <CardHeader className="py-3 px-4 border-b flex-shrink-0">
             <CardTitle className="text-sm flex items-center gap-2">
               <ShoppingCart className="h-4 w-4" />
-              Keranjang ({cart.length} item · {totalQty} pcs)
+              <span className="flex-1">Keranjang ({cart.length} item · {totalQty} pcs)</span>
+              <button
+                onClick={() => setIsCartCollapsed(true)}
+                className="hidden lg:flex items-center justify-center h-5 w-5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                title="Sembunyikan keranjang"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto p-0">
@@ -378,7 +408,8 @@ export default function KasirPage() {
                           value={item.quantity}
                           onChange={(e) => setQty(item.variantId, parseInt(e.target.value))}
                           onFocus={(e) => e.target.select()}
-                          className="text-sm font-medium w-10 text-center border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          className="text-sm font-medium text-center border rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400 transition-[width] duration-100"
+                          style={{ width: `${Math.max(4, String(item.quantity).length + 3)}ch` }}
                         />
                         <button onClick={() => updateQty(item.variantId, 1)} className="rounded border w-6 h-6 flex items-center justify-center hover:bg-gray-100">
                           <Plus className="h-3 w-3" />
@@ -400,6 +431,17 @@ export default function KasirPage() {
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
                 <span>{formatRupiah(subtotal)}</span>
+              </div>
+              <div className="flex justify-between items-center text-gray-600">
+                <span>Ongkos Kirim</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={shippingCost || ""}
+                  onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                  className="w-32 text-right text-sm border rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
               </div>
             </div>
 
@@ -429,6 +471,7 @@ export default function KasirPage() {
             </div>
           </CardContent>
         </Card>
+        </div>{/* end expanded content */}
       </div>
       </div>
 
