@@ -30,6 +30,7 @@ interface Transaction {
   subtotal: string;
   discountAmount: string;
   discountReason?: string | null;
+  shippingCost: string;
   totalAmount: string;
   paymentAmount: string;
   changeAmount: string;
@@ -342,6 +343,12 @@ export default function RiwayatPage() {
                       )}
                     </span>
                     <span>-{formatRupiah(selectedTrx.discountAmount)}</span>
+                  </div>
+                )}
+                {Number(selectedTrx.shippingCost) > 0 && (
+                  <div className="flex justify-between text-gray-700">
+                    <span>Ongkos Kirim</span>
+                    <span>+{formatRupiah(selectedTrx.shippingCost)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-semibold text-base border-t pt-1">
