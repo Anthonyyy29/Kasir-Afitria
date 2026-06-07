@@ -435,10 +435,13 @@ export default function KasirPage() {
               <div className="flex justify-between items-center text-gray-600">
                 <span>Ongkos Kirim</span>
                 <input
-                  type="number"
-                  min="0"
-                  value={shippingCost || ""}
-                  onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
+                  type="text"
+                  inputMode="numeric"
+                  value={shippingCost ? shippingCost.toLocaleString("id-ID") : ""}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
+                    setShippingCost(digits ? parseInt(digits, 10) : 0);
+                  }}
                   placeholder="0"
                   className="w-32 text-right text-sm border rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
