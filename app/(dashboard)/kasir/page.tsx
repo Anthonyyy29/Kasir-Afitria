@@ -551,6 +551,18 @@ export default function KasirPage() {
                     <TableCell className="py-2 text-right text-sm font-medium">{formatRupiah(item.price * item.quantity)}</TableCell>
                   </TableRow>
                 ))}
+                {shippingCost > 0 && (
+                  <>
+                    <TableRow className="border-t">
+                      <TableCell colSpan={4} className="py-1 text-sm text-right text-gray-500">Subtotal</TableCell>
+                      <TableCell className="py-1 text-right text-sm text-gray-500">{formatRupiah(subtotal)}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell colSpan={4} className="py-1 text-sm text-right text-gray-500">Ongkos Kirim</TableCell>
+                      <TableCell className="py-1 text-right text-sm text-gray-500">+{formatRupiah(shippingCost)}</TableCell>
+                    </TableRow>
+                  </>
+                )}
                 <TableRow className="border-t-2 font-bold bg-gray-50">
                   <TableCell colSpan={2} className="py-2 text-sm">Total</TableCell>
                   <TableCell className="py-2 text-center text-sm">{totalQty}</TableCell>
