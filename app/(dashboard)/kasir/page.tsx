@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck, Truck, Eye, ChevronRight, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +50,9 @@ export default function KasirPage() {
   const [isCartCollapsed, setIsCartCollapsed] = useState(false);
   const [pendingCustomerId, setPendingCustomerId] = useState<string | null>(null);
   const [confirmChangeCustomer, setConfirmChangeCustomer] = useState(false);
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const customerBoxRef = useRef<HTMLDivElement>(null);
 
   const loadData = useCallback(async () => {
     const [pRes, cRes] = await Promise.all([fetch("/api/produk"), fetch("/api/pelanggan")]);
@@ -59,6 +61,24 @@ export default function KasirPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    setCustomerQuery(selectedCustomer?.name ?? "");
+  }, [selectedCustomer]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (customerBoxRef.current && !customerBoxRef.current.contains(e.target as Node)) {
+        setCustomerDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredCustomers = customers.filter((c) =>
+    c.name.toLowerCase().includes(customerQuery.trim().toLowerCase())
+  );
 
   useEffect(() => {
     if (!activeSession || sessionLoading) return;
@@ -285,19 +305,36 @@ export default function KasirPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <Select onValueChange={handleSelectCustomer}>
-                <SelectTrigger className={selectedCustomer ? "border-blue-400 bg-blue-50" : ""}>
-                  <SelectValue placeholder="Pilih pelanggan..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name} {c.phone ? `(${c.phone})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex-1 relative" ref={customerBoxRef}>
+              <Input
+                placeholder="Cari pelanggan..."
+                value={customerQuery}
+                onChange={(e) => { setCustomerQuery(e.target.value); setCustomerDropdownOpen(true); }}
+                onFocus={(e) => { setCustomerDropdownOpen(true); e.target.select(); }}
+                className={selectedCustomer ? "border-blue-400 bg-blue-50" : ""}
+              />
+              {customerDropdownOpen && (
+                <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-white shadow-lg">
+                  {filteredCustomers.length === 0 ? (
+                    <p className="px-3 py-2 text-sm text-gray-400">Pelanggan tidak ditemukan</p>
+                  ) : (
+                    filteredCustomers.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          handleSelectCustomer(c.id);
+                          setCustomerDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex items-center justify-between gap-2"
+                      >
+                        <span>{c.name}</span>
+                        {c.phone && <span className="text-xs text-gray-400">{c.phone}</span>}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
             {loadingCustomer && <Loader2 className="h-4 w-4 animate-spin text-blue-500 shrink-0" />}
             {selectedCustomer && <Badge variant="success" className="gap-1 whitespace-nowrap shrink-0"><UserCheck className="h-3 w-3" />{selectedCustomer.name}</Badge>}
