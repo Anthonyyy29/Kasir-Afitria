@@ -644,6 +644,13 @@ export default function KasirPage() {
           </div>
 
             <div className="bg-gray-50 rounded-lg p-3 space-y-1.5 text-sm">
+              {shippingCost > 0 && (
+                <>
+                  <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatRupiah(subtotal)}</span></div>
+                  <div className="flex justify-between text-gray-600"><span>Ongkos Kirim</span><span>+{formatRupiah(shippingCost)}</span></div>
+                  <div className="border-t pt-1.5" />
+                </>
+              )}
               <div className="flex justify-between font-bold text-base"><span>Total</span><span className="text-blue-600">{formatRupiah(total)}</span></div>
             </div>
 
