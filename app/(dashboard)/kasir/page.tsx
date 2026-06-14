@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, Receipt, Loader2, UserCheck, Truck, Eye, ChevronRight, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatRupiah } from "@/lib/utils";
@@ -567,50 +567,29 @@ export default function KasirPage() {
               {selectedCustomer ? selectedCustomer.name : "Tanpa pelanggan"}
             </DialogDescription>
           </DialogHeader>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8">No</TableHead>
-                  <TableHead>Produk</TableHead>
-                  <TableHead className="text-center w-16">Qty</TableHead>
-                  <TableHead className="text-right">Harga</TableHead>
-                  <TableHead className="text-right">Subtotal</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cart.map((item, idx) => (
-                  <TableRow key={item.variantId}>
-                    <TableCell className="py-2 text-gray-400">{idx + 1}</TableCell>
-                    <TableCell className="py-2">
-                      <p className="text-sm font-medium">{item.productName}</p>
-                      {item.variantInfo && <p className="text-xs text-gray-500">{item.variantInfo}</p>}
-                    </TableCell>
-                    <TableCell className="py-2 text-center text-sm">{item.quantity}</TableCell>
-                    <TableCell className="py-2 text-right text-sm">{formatRupiah(item.price)}</TableCell>
-                    <TableCell className="py-2 text-right text-sm font-medium">{formatRupiah(item.price * item.quantity)}</TableCell>
-                  </TableRow>
-                ))}
-                {shippingCost > 0 && (
-                  <>
-                    <TableRow className="border-t">
-                      <TableCell colSpan={4} className="py-1 text-sm text-right text-gray-500">Subtotal</TableCell>
-                      <TableCell className="py-1 text-right text-sm text-gray-500">{formatRupiah(subtotal)}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell colSpan={4} className="py-1 text-sm text-right text-gray-500">Ongkos Kirim</TableCell>
-                      <TableCell className="py-1 text-right text-sm text-gray-500">+{formatRupiah(shippingCost)}</TableCell>
-                    </TableRow>
-                  </>
-                )}
-                <TableRow className="border-t-2 font-bold bg-gray-50">
-                  <TableCell colSpan={2} className="py-2 text-sm">Total</TableCell>
-                  <TableCell className="py-2 text-center text-sm">{totalQty}</TableCell>
-                  <TableCell />
-                  <TableCell className="py-2 text-right text-sm text-blue-600">{formatRupiah(total)}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+          <div className="space-y-3">
+            <div className="max-h-[50vh] overflow-y-auto space-y-1 pr-1">
+              {cart.map((item, idx) => (
+                <div key={item.variantId} className="flex items-start justify-between gap-3 py-1.5 border-b last:border-0">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{idx + 1}. {item.productName}</p>
+                    {item.variantInfo && <p className="text-xs text-gray-500">{item.variantInfo}</p>}
+                    <p className="text-xs text-gray-500">{item.quantity} x {formatRupiah(item.price)}</p>
+                  </div>
+                  <p className="text-sm font-medium text-right flex-shrink-0">{formatRupiah(item.price * item.quantity)}</p>
+                </div>
+              ))}
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3 space-y-1.5 text-sm">
+              {shippingCost > 0 && (
+                <>
+                  <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatRupiah(subtotal)}</span></div>
+                  <div className="flex justify-between text-gray-600"><span>Ongkos Kirim</span><span>+{formatRupiah(shippingCost)}</span></div>
+                  <div className="border-t pt-1.5" />
+                </>
+              )}
+              <div className="flex justify-between font-bold text-base"><span>Total ({totalQty} pcs)</span><span className="text-blue-600">{formatRupiah(total)}</span></div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPreviewOpen(false)}>Tutup</Button>
