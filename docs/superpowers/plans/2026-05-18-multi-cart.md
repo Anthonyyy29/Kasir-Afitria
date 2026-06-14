@@ -765,6 +765,7 @@ useEffect(() => {
     discountReason: discountReason || null,
   });
 }, [cart, selectedCustomer, discountAmount, discountReason, activeCartId, syncToDb, sessionLoading]);
+```
 
 - [ ] **Step 5: Update handleCheckout — hapus session setelah bayar**
 
