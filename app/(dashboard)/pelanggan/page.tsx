@@ -468,10 +468,10 @@ export default function PelangganPage() {
                     <TableHeader className="sticky top-0 bg-white z-10">
                       <TableRow>
                         <TableHead>Produk</TableHead>
-                        <TableHead>Warna</TableHead>
-                        <TableHead>Ukuran</TableHead>
-                        <TableHead className="text-right">Harga Dasar</TableHead>
-                        <TableHead className="text-right w-[160px]">Harga Khusus (Rp)</TableHead>
+                        <TableHead className="hidden sm:table-cell">Warna</TableHead>
+                        <TableHead className="hidden sm:table-cell">Ukuran</TableHead>
+                        <TableHead className="hidden sm:table-cell text-right">Harga Dasar</TableHead>
+                        <TableHead className="text-right w-[140px] sm:w-[160px]">Harga Khusus (Rp)</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -488,11 +488,19 @@ export default function PelangganPage() {
                           const isSaved = savedVariants.has(v.id);
                           return (
                             <TableRow key={v.id} className={hasSpecial ? "bg-blue-50/60" : ""}>
-                              <TableCell className="font-medium text-sm">{v.product.name}</TableCell>
-                              <TableCell className="text-sm text-gray-600">{v.color?.name ?? "-"}</TableCell>
-                              <TableCell className="text-sm text-gray-600">{v.size?.name ?? "-"}</TableCell>
-                              <TableCell className="text-right text-sm text-gray-500">{formatRupiah(v.basePrice)}</TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="font-medium text-sm align-top">
+                                {v.product.name}
+                                <span className="sm:hidden flex flex-col gap-0.5 mt-0.5">
+                                  <span className="text-xs text-gray-500 font-normal">
+                                    {[v.color?.name, v.size?.name].filter(Boolean).join(" / ") || "-"}
+                                  </span>
+                                  <span className="text-xs text-gray-400 font-normal">Dasar: {formatRupiah(v.basePrice)}</span>
+                                </span>
+                              </TableCell>
+                              <TableCell className="hidden sm:table-cell text-sm text-gray-600">{v.color?.name ?? "-"}</TableCell>
+                              <TableCell className="hidden sm:table-cell text-sm text-gray-600">{v.size?.name ?? "-"}</TableCell>
+                              <TableCell className="hidden sm:table-cell text-right text-sm text-gray-500">{formatRupiah(v.basePrice)}</TableCell>
+                              <TableCell className="text-right align-top">
                                 <div className="relative flex items-center justify-end gap-1.5">
                                   <Input
                                     type="number"
