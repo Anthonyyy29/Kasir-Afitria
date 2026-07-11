@@ -226,14 +226,14 @@ export async function generateNotaPDF(trx: TransactionData): Promise<jsPDF> {
   for (const [label, value, bold] of summaryRows) {
     doc.setFont("helvetica", bold ? "bold" : "normal");
     if (bold) {
-      doc.setFontSize(12);
+      doc.setFontSize(14);
       doc.setTextColor(60, 90, 180);
     }
     doc.text(label, colLabel, y);
     doc.text(value, colValue, y, { align: "right" });
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
-    y += bold ? 7 : 5.5;
+    y += bold ? 8 : 5.5;
   }
 
   // Footer
